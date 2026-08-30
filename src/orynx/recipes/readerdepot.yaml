@@ -1,0 +1,28 @@
+# UNVERIFIED SELECTORS — confirm with: orynx recipe test readerdepot --limit 3
+id: readerdepot
+name: Reader Depot
+kind: retailer
+homepage: https://www.readerdepot.com
+trust: 0.45
+enabled: false          # disabled until the domain and structure are confirmed
+permitted: true
+permitted_note: "Domain and page structure unconfirmed; enable after verifying."
+
+politeness:
+  rate_limit_rps: 0.25
+  obey_robots: true
+
+discover:
+  strategy: sitemap
+  sitemap_url: "https://www.readerdepot.com/sitemap.xml"
+  url_pattern: "/product"
+  sitemap_yields: detail
+  max_urls: 1000
+
+detail:
+  enabled: true
+  prefer_jsonld: true
+  fields:
+    title: { css: "h1" }
+    authors: { css: ".author, [itemprop=author]", many: true }
+    isbn: { css: "[itemprop=isbn], .isbn", transform: [isbn] }

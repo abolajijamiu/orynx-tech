@@ -1,0 +1,33 @@
+# UNVERIFIED SELECTORS — confirm with: orynx recipe test koehlerbooks --limit 3
+id: koehlerbooks
+name: Koehler Books
+kind: hybrid
+homepage: https://www.koehlerbooks.com
+trust: 0.6
+enabled: true
+permitted: true
+permitted_note: "Public catalogue. Selectors not yet verified against the live site."
+
+politeness:
+  rate_limit_rps: 0.3
+  obey_robots: true
+
+discover:
+  strategy: sitemap
+  sitemap_url: "https://www.koehlerbooks.com/sitemap.xml"
+  url_pattern: "/book"
+  sitemap_yields: detail
+  max_urls: 1500
+
+detail:
+  enabled: true
+  prefer_jsonld: true
+  fields:
+    title: { css: "h1" }
+    authors: { css: ".author-name, .book-author, [itemprop=author]", many: true }
+    isbn: { css: "[itemprop=isbn]", transform: [isbn] }
+    description: { css: "[itemprop=description], .description" }
+    cover_url: { css: "img.cover, img[itemprop=image]", attr: src }
+
+constants:
+  publisher: Koehler Books

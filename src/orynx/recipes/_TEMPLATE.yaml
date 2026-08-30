@@ -1,0 +1,84 @@
+# Recipe template. Copy to <site-id>.yaml and edit.
+# Files beginning with "_" are ignored by the loader.
+#
+# Fastest way to build one:
+#   orynx recipe scaffold https://example.com/books/some-book
+# That probes the page for schema.org JSON-LD and prints a starting recipe.
+# Then check it with:
+#   orynx recipe test <site-id> --limit 3
+
+id: example-press                 # unique; also the value in the `sources` export column
+name: Example Press
+kind: publisher                   # bibliographic|publisher|hybrid|retailer|review|crowdfunding|directory
+homepage: https://example.com
+trust: 0.6                        # 0..1 confidence in this platform's data quality
+enabled: true
+
+# Set permitted: false to keep a site on file while excluding it from every run —
+# for example when its terms forbid automated access. The crawler refuses to run
+# it, and the reason stays recorded here instead of living in someone's memory.
+permitted: true
+permitted_note: "Public catalogue; robots.txt allows /books/."
+
+politeness:
+  rate_limit_rps: 0.4             # requests per second for this domain
+  obey_robots: true               # false additionally requires robots_override_reason
+
+# ---- Discovery: how to find pages ------------------------------------------
+discover:
+  strategy: paginate              # paginate | static | sitemap
+
+  # paginate: walk numbered listing pages
+  url_template: "https://example.com/books?page={page}"
+  start_page: 1
+  page_step: 1
+  max_pages: 25
+  stop_when_empty: true           # stop at the first page with no items
+
+  # static: an explicit list of listing pages
+  # urls: ["https://example.com/catalogue"]
+
+  # sitemap: read URLs from an XML sitemap (a sitemap index is followed one level)
+  # sitemap_url: "https://example.com/sitemap.xml"
+  # url_pattern: "/books/"        # keep only URLs containing this
+  # sitemap_yields: detail        # detail (default) = each URL is a book page
+  # max_urls: 2000
+
+# ---- Listing: pull book links off a listing page ---------------------------
+# Not needed when discover is a sitemap yielding detail pages.
+listing:
+  item_selector: "article.book-card"
+  fields:
+    detail_url: { css: "a.title", attr: href }
+    title: { css: "a.title" }
+  # Or, when the listing is just links:
+  # link_selector: "a.book-link"
+
+# ---- Detail: read one book page --------------------------------------------
+detail:
+  enabled: true
+  prefer_jsonld: true             # try schema.org Book first; selectors override it
+  fields:
+    title: { css: "h1.book-title" }
+    authors: { css: "span.author-name", many: true }
+    isbn: { css: "[itemprop=isbn]", transform: [isbn] }
+    published_date: { css: ".pub-date" }
+    description: { css: ".synopsis" }
+    cover_url: { css: "img.cover", attr: src }
+    price: { css: ".price", regex: "([0-9]+[.,][0-9]{2})" }
+
+# Values merged into every book from this site, for facts the pages never print.
+constants:
+  publisher: Example Press
+
+# ---- FieldSpec reference ----------------------------------------------------
+# css:        CSS selector (selectolax; standard CSS3)
+# attr:       read an attribute instead of text; href/src/content are made absolute
+# regex:      first capture group, else the whole match
+# many:       true -> collect every match into a list
+# index:      pick the nth match (negatives allowed)
+# join:       join a `many` list into one string
+# const:      fixed value, no lookup
+# default:    value used when nothing matched
+# jsonld:     dotted path into the page's JSON-LD, e.g. "author.name"
+# transform:  strip, lower, upper, title, int, float, isbn, clean

@@ -1,0 +1,33 @@
+{
+  "numFound": 2,
+  "start": 0,
+  "docs": [
+    {
+      "key": "/works/OL1W",
+      "title": "The Quiet Harbour",
+      "subtitle": "A Novel",
+      "author_name": ["Amara Nwosu"],
+      "author_key": ["OL1A"],
+      "isbn": ["0306406152", "9781234567897"],
+      "first_publish_year": 2024,
+      "publisher": ["Koehler Books"],
+      "language": ["eng"],
+      "number_of_pages_median": 312,
+      "cover_i": 12345,
+      "subject": ["Fiction", "Literary"],
+      "ratings_count": 4,
+      "ratings_average": 4.1
+    },
+    {
+      "key": "/works/OL2W",
+      "title": "Tidewater",
+      "author_name": ["Amara Nwosu", "Peter Blake"],
+      "author_key": ["OL1A", "OL2A"],
+      "isbn": ["9780306406157"],
+      "first_publish_year": 2019,
+      "publisher": ["Penguin Random House"],
+      "ratings_count": 8200,
+      "ratings_average": 4.4
+    }
+  ]
+}

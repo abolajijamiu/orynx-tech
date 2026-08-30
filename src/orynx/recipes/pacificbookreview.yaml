@@ -1,0 +1,37 @@
+# UNVERIFIED SELECTORS — confirm with: orynx recipe test pacificbookreview --limit 3
+# A review site: every listing is a book someone paid to have reviewed, which is
+# a strong intent signal for author services.
+id: pacificbookreview
+name: Pacific Book Review
+kind: review
+homepage: https://www.pacificbookreview.com
+trust: 0.5
+enabled: true
+permitted: true
+permitted_note: "Public review index. Selectors not yet verified against the live site."
+
+politeness:
+  rate_limit_rps: 0.25
+  obey_robots: true
+
+discover:
+  strategy: paginate
+  url_template: "https://www.pacificbookreview.com/reviews/page/{page}/"
+  start_page: 1
+  max_pages: 30
+  stop_when_empty: true
+
+listing:
+  item_selector: "article, .review-item, .post"
+  fields:
+    detail_url: { css: "a", attr: href }
+    title: { css: "h2, h3, .entry-title" }
+
+detail:
+  enabled: true
+  prefer_jsonld: true
+  fields:
+    title: { css: "h1, .entry-title" }
+    authors: { css: ".book-author, .author", many: true }
+    isbn: { css: ".isbn", regex: "([0-9Xx\\-]{10,17})", transform: [isbn] }
+    description: { css: ".entry-content p", index: 0 }

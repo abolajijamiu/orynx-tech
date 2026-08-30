@@ -1,0 +1,35 @@
+# UNVERIFIED SELECTORS — confirm with: orynx recipe test pegasuspublishers --limit 3
+# The JSON-LD path below works without selectors if the site publishes schema.org
+# Book markup; the CSS entries are a fallback and may need adjusting once checked.
+id: pegasuspublishers
+name: Pegasus Publishers
+kind: hybrid
+homepage: https://www.pegasuspublishers.com
+trust: 0.55
+enabled: true
+permitted: true
+permitted_note: "Public catalogue. Selectors not yet verified against the live site."
+
+politeness:
+  rate_limit_rps: 0.3
+  obey_robots: true
+
+discover:
+  strategy: sitemap
+  sitemap_url: "https://www.pegasuspublishers.com/sitemap.xml"
+  url_pattern: "/books/"
+  sitemap_yields: detail
+  max_urls: 1500
+
+detail:
+  enabled: true
+  prefer_jsonld: true
+  fields:
+    title: { css: "h1" }
+    authors: { css: ".author, .book-author, [itemprop=author]", many: true }
+    isbn: { css: "[itemprop=isbn]", regex: "([0-9Xx\\-]{10,17})", transform: [isbn] }
+    description: { css: "[itemprop=description], .book-description, .synopsis" }
+    cover_url: { css: ".book-cover img, img[itemprop=image]", attr: src }
+
+constants:
+  publisher: Pegasus Publishers
