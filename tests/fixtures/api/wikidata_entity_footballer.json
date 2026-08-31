@@ -1,0 +1,13 @@
+{"entities": {"Q1111111": {
+  "id": "Q1111111",
+  "labels": {"en": {"language": "en", "value": "Amara Nwosu"}},
+  "descriptions": {"en": {"language": "en", "value": "Nigerian footballer"}},
+  "claims": {
+    "P31": [{"mainsnak": {"snaktype": "value", "property": "P31",
+      "datavalue": {"value": {"entity-type": "item", "id": "Q5"}, "type": "wikibase-entityid"}}}],
+    "P106": [{"mainsnak": {"snaktype": "value", "property": "P106",
+      "datavalue": {"value": {"entity-type": "item", "id": "Q937857"}, "type": "wikibase-entityid"}}}],
+    "P856": [{"mainsnak": {"snaktype": "value", "property": "P856",
+      "datavalue": {"value": "https://wrong-person.example", "type": "string"}}}]
+  }
+}}}

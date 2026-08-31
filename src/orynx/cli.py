@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from orynx.config import get_settings
-from orynx.db.base import init_db, session_scope
+from orynx.db.base import get_engine, init_db, session_scope
 from orynx.logging import setup_logging
 
 app = typer.Typer(
@@ -60,7 +60,8 @@ def run_command(
     limit: int = typer.Option(200, "--limit", "-n", help="Max records per source."),
     profile: str = typer.Option("services", "--profile", "-p", help="Scoring profile."),
     contacts: bool = typer.Option(
-        False, "--contacts", help="Visit author pages to collect published contact details."
+        False, "--contacts",
+        help="Also run the enrichment chain to find how to reach each author.",
     ),
 ) -> None:
     """Ingest from one or more sources, then score every lead."""
@@ -184,6 +185,181 @@ def serve(host: str = "127.0.0.1", port: int = 8000) -> None:
     import uvicorn
 
     uvicorn.run("orynx.api.app:app", host=host, port=port)
+
+
+@app.command("enrich")
+def enrich_command(
+    limit: int = typer.Option(None, "--limit", "-n", help="Max authors to enrich."),
+    all_authors: bool = typer.Option(
+        False, "--all", help="Include authors that already have a contact point."
+    ),
+) -> None:
+    """Find contact details for authors already in the database.
+
+    Chains Open Library author records, Wikidata, and the author's own site.
+    """
+    from orynx.fetch import PoliteClient
+    from orynx.pipeline.run import enrich_pending_authors
+
+    async def _run():
+        client = PoliteClient()
+        try:
+            with session_scope() as session:
+                return await enrich_pending_authors(
+                    session, client, limit=limit, only_missing_contacts=not all_authors
+                )
+        finally:
+            await client.aclose()
+
+    stats = asyncio.run(_run())
+    table = Table(title="Enrichment", header_style="bold")
+    table.add_column("metric")
+    table.add_column("value", justify="right")
+    table.add_row("authors attempted", str(stats.attempted))
+    table.add_row("authors enriched", str(stats.enriched))
+    table.add_row("contacts added", str(stats.contacts_added))
+    table.add_row("websites found", str(stats.websites_found))
+    table.add_row("emails found", str(stats.emails_found))
+    for source, count in sorted(stats.by_source.items()):
+        table.add_row(f"  via {source}", str(count))
+    console.print(table)
+    if stats.attempted and not stats.enriched:
+        console.print(
+            "[yellow]Nothing found.[/] Run 'orynx doctor' — the identity sources "
+            "may be unreachable from this network."
+        )
+
+
+@app.command("doctor")
+def doctor() -> None:
+    """Check configuration and reachability before a real crawl.
+
+    Run this first if a crawl returns nothing; it separates a network or config
+    problem from an empty result.
+    """
+    import httpx
+
+    from orynx.sources.registry import get_registry
+
+    settings = get_settings()
+    table = Table(title="Diagnostics", header_style="bold")
+    for column in ("check", "result", "detail"):
+        table.add_column(column)
+
+    ok = "[green]ok[/]"
+    warn = "[yellow]warn[/]"
+    bad = "[red]fail[/]"
+
+    # Database
+    try:
+        from sqlalchemy import text
+
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+        table.add_row("database", ok, settings.database_url.split("@")[-1])
+    except Exception as exc:
+        table.add_row("database", bad, str(exc)[:70])
+
+    # A default user agent means site owners cannot identify or contact you.
+    if "example.com" in settings.user_agent:
+        table.add_row("user agent", warn, "still the placeholder — set ORYNX_USER_AGENT")
+    else:
+        table.add_row("user agent", ok, settings.user_agent[:60])
+
+    table.add_row(
+        "contact email",
+        ok if settings.contact_email else warn,
+        settings.contact_email or "unset (raises rate limits on Crossref/OpenAlex)",
+    )
+
+    # Recipes
+    try:
+        registry = get_registry()
+        table.add_row("recipes", ok, f"{len(registry.recipes)} loaded")
+    except Exception as exc:
+        table.add_row("recipes", bad, str(exc)[:70])
+
+    # Reachability of every network dependency.
+    probes = {
+        "openlibrary": "https://openlibrary.org/search.json?q=test&limit=1",
+        "googlebooks": "https://www.googleapis.com/books/v1/volumes?q=test&maxResults=1",
+        "crossref": "https://api.crossref.org/works?rows=1",
+        "openalex": "https://api.openalex.org/works?per-page=1",
+        "wikidata": "https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q42&format=json",
+    }
+    for name, url in probes.items():
+        try:
+            response = httpx.get(
+                url, timeout=15.0, headers={"User-Agent": settings.user_agent},
+                follow_redirects=True,
+            )
+            if response.status_code == 200:
+                table.add_row(f"reach {name}", ok, "200")
+            elif response.status_code == 429:
+                table.add_row(f"reach {name}", warn, "429 rate limited — try a key or wait")
+            else:
+                table.add_row(f"reach {name}", warn, f"HTTP {response.status_code}")
+        except Exception as exc:
+            table.add_row(f"reach {name}", bad, type(exc).__name__)
+
+    console.print(table)
+
+
+@app.command("quickstart")
+def quickstart(
+    query: str = typer.Option(
+        "self-published memoir", "--query", "-q", help="What to search for."
+    ),
+    limit: int = typer.Option(200, "--limit", "-n"),
+    profile: str = typer.Option("services", "--profile", "-p"),
+    contacts: bool = typer.Option(True, "--contacts/--no-contacts"),
+    out: Path = typer.Option(None, "--out", "-o"),
+) -> None:
+    """Set up, crawl, enrich and export in one command.
+
+    The fastest way to find out whether the leads are any good.
+    """
+    from orynx.export.builder import build_rows
+    from orynx.export.xlsx_export import write_xlsx
+    from orynx.pipeline.run import run_pipeline
+
+    console.print("[bold]1/4[/] preparing database")
+    init_db()
+
+    console.print(f"[bold]2/4[/] searching Open Library and Google Books for {query!r}")
+    with session_scope() as session:
+        stats = asyncio.run(
+            run_pipeline(
+                session, ["openlibrary", "googlebooks"],
+                query=query, limit=limit, profile=profile, with_contacts=contacts,
+            )
+        )
+        fetched = sum(s.fetched for s in stats)
+        if fetched == 0:
+            console.print(
+                "[red]Nothing was fetched.[/] Run [bold]orynx doctor[/] to find out why."
+            )
+            raise typer.Exit(1)
+
+        console.print(f"[bold]3/4[/] scoring leads ({fetched} records fetched)")
+        rows, suppressed = build_rows(session)
+
+        console.print("[bold]4/4[/] exporting")
+        path = out or get_settings().export_dir / "leads.xlsx"
+        write_xlsx(rows, path, suppressed=suppressed)
+
+    reachable = sum(1 for r in rows if r.author_emails or r.author_website or r.author_socials)
+    summary = Table(title="Quickstart result", header_style="bold")
+    summary.add_column("metric")
+    summary.add_column("value", justify="right")
+    summary.add_row("leads", str(len(rows)))
+    summary.add_row("tier A", str(sum(1 for r in rows if r.tier == "A")))
+    summary.add_row("tier B", str(sum(1 for r in rows if r.tier == "B")))
+    summary.add_row("with a contact point", str(reachable))
+    summary.add_row("with an email", str(sum(1 for r in rows if r.author_emails)))
+    console.print(summary)
+    console.print(f"\n[green]Open {path}[/] and read 50 rows. Would you pitch these people?")
+    console.print("If they skew wrong, try: [bold]orynx rescore --profile marketing[/]")
 
 
 # --------------------------------------------------------------------------- #

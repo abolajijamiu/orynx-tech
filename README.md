@@ -9,10 +9,10 @@ change**. Most publisher and retail book pages already publish `schema.org/Book`
 markup, so the generic extractor often needs no selectors at all.
 
 ```
-discover ──► fetch ──► extract ──► normalise ──► resolve ──► score ──► export
-             (polite)   (JSON-LD    (ISBN, dates,  (dedupe    (profiles) (CSV/XLSX)
-                        or CSS)      names)         books &
-                                                    authors)
+discover ─► fetch ─► extract ─► normalise ─► resolve ─► enrich ─► score ─► export
+           (polite)  (JSON-LD   (ISBN,       (dedupe    (how to  (profiles) (CSV/
+                     or CSS)     dates,       books &    reach              XLSX)
+                                 names)       authors)   them)
 ```
 
 ## Quick start
@@ -20,16 +20,30 @@ discover ──► fetch ──► extract ──► normalise ──► resolve
 ```bash
 make install                 # venv + dependencies
 cp .env.example .env         # then edit ORYNX_USER_AGENT — see "Identify yourself"
-make db                      # Postgres via docker compose (or use SQLite, below)
+echo 'ORYNX_DATABASE_URL=sqlite+pysqlite:///./orynx.db' >> .env   # or use Postgres
 
+.venv/bin/orynx doctor       # config and reachability check — run this first
+.venv/bin/orynx quickstart --query "self-published memoir"
+```
+
+`quickstart` sets up the database, searches Open Library and Google Books,
+enriches the authors it finds, scores everything and writes a spreadsheet. Open it
+and read fifty rows: would you pitch these people? That answer tells you more than
+any amount of configuration.
+
+For Postgres instead of SQLite, run `make db` and leave `ORYNX_DATABASE_URL` at
+its default. Step by step, rather than `quickstart`:
+
+```bash
 .venv/bin/orynx init-db
-.venv/bin/orynx sources
 .venv/bin/orynx run --source openlibrary --query "self-published memoir" --limit 200
+.venv/bin/orynx enrich                 # find how to reach them
 .venv/bin/orynx leads --limit 20
 .venv/bin/orynx export --format xlsx --tier A --tier B
 ```
 
-No Postgres? Set `ORYNX_DATABASE_URL=sqlite+pysqlite:///./orynx.db` and skip `make db`.
+If a crawl returns nothing, run `orynx doctor` before anything else — it separates
+a blocked network or bad config from a genuinely empty result.
 
 ## Sources
 
@@ -92,6 +106,50 @@ Signals: `recency`, `author_funded`, `small_catalogue`, `low_visibility`,
 `high_visibility`, `trade_published`, `contactable`, `source_trust`,
 `corroborated`. Edit `PROFILES` in `src/orynx/pipeline/score.py` to tune, or add
 your own profile.
+
+## Enrichment: how to actually reach them
+
+Extraction yields names and titles, almost none of which are contactable. A lead
+list you cannot email is not yet a lead list, so enrichment is a first-class stage
+rather than an afterthought.
+
+Three sources run as a chain, ordered so each hands the next a stronger
+identifier than a name:
+
+1. **Open Library author records** — often carry the author's own website in
+   `links`, and a Wikidata Q-id in `remote_ids`.
+2. **Wikidata** — official website, social handles and ORCID, keyless and open.
+   Given a Q-id from step 1, the lookup is exact rather than a guess.
+3. **The author's own site** — read for published contact details, but only once
+   an earlier step has found its address.
+
+```bash
+orynx enrich                                              # authors with no contact yet
+orynx enrich --all --limit 500
+orynx run --source openlibrary --query "..." --contacts   # crawl and enrich together
+```
+
+**Guarding against the wrong person.** Searching Wikidata for a common name
+returns footballers as readily as novelists, and attaching a stranger's Twitter to
+a lead is worse than having no contact at all. Two defences apply: an identifier
+handed over by Open Library is used directly with no guessing, and a name search
+accepts a candidate only if it is a human whose occupations include writing —
+checking *every* label match rather than the first, since the author is rarely
+ranked top. Confidence is recorded accordingly (0.95 for an identifier lookup,
+0.7 for a verified name search), and anything below 0.55 is discarded.
+
+**Provenance is per fact, not per author.** A merged profile holds values from
+several enrichers, so each contact records which one supplied it — the email from
+the author's site, the ORCID from Wikidata — and each is separately deletable.
+
+**Generic inboxes are judged by domain, not by wordlist.** `hello@` on the
+author's own domain is how they ask to be reached; `info@` on a publisher's domain
+is not theirs. The domain decides.
+
+**Dead hosts are written off.** After three consecutive connection failures a host
+is skipped for the rest of the run. Without this, one blocked identity source
+costs a timeout per author — measured at roughly 17s each, or hours across a large
+batch.
 
 ## Deduplication
 
@@ -189,7 +247,8 @@ src/orynx/
     html/                    recipe schema, extraction engine, generic source
     registry.py              unified lookup by id
   recipes/*.yaml             site definitions (start from _TEMPLATE.yaml)
-  pipeline/                  normalise, dedupe, enrich, score, orchestrate
+  pipeline/                  normalise, dedupe, score, orchestrate
+  enrich/                    author identity chain: Open Library, Wikidata, own site
   compliance/                suppression list
   export/                    row builder, CSV, XLSX
   api/                       FastAPI app
@@ -201,7 +260,7 @@ which is what makes politeness impossible to forget.
 ## Development
 
 ```bash
-make test        # 114 tests, no network required
+make test        # 138 tests, no network required
 make lint
 ```
 
@@ -210,21 +269,28 @@ suite makes a live request, so it is safe to run in CI and against a fork.
 
 ## Status and next steps
 
-Working today: the four API adapters, the recipe engine (JSON-LD and CSS),
-dedupe, four scoring profiles, contact discovery, suppression, CSV/XLSX export,
-CLI, and HTTP API.
+Working today: four API adapters, the recipe engine (JSON-LD and CSS), dedupe,
+the three-stage enrichment chain, four scoring profiles, suppression, CSV/XLSX
+export, CLI and HTTP API.
+
+**Not yet done: a single real crawl.** Everything is verified against fixtures, a
+mock transport and a local demo site. Nothing here has run against the live Open
+Library or Wikidata, because the environment it was built in blocks them. Your
+first job is `orynx doctor`, then `orynx quickstart`, and the first thing to judge
+is whether the leads are people you would actually pitch.
 
 Worth building next, roughly in order of value:
 
 1. **Verify the four shipped site recipes** against the live sites — one
-   `orynx recipe test` run each. Nothing else is blocked on this, but the leads
-   from those sources are only as good as their selectors.
-2. **Alembic migrations.** `init-db` uses `create_all`, which is fine until the
-   schema changes under real data.
+   `orynx recipe test` run each. Those leads are only as good as their selectors,
+   and the selectors are currently guesses.
+2. **Tune the scoring weights** against a real export. The profiles are reasoned,
+   not calibrated; fifty real rows will teach you more than the reasoning did.
 3. **Scheduled re-crawls** with change detection — `raw_record.content_hash`
    already makes this cheap, and a new book by a known author is the highest
-   intent signal available.
-4. **A review UI.** The API supports lead triage; there is no front end.
-5. **Crowdfunding sources** (Kickstarter, Publishizer). Authors actively funding
-   a book are the warmest leads in publishing, and both need recipes rather than
-   adapters.
+   intent signal in the business.
+4. **Alembic migrations.** `init-db` uses `create_all`, which is fine until the
+   schema changes under real data.
+5. **Crowdfunding sources** (Kickstarter, Publishizer). Authors actively funding a
+   book are the warmest leads in publishing; both need recipes rather than adapters.
+6. **A review UI.** The API supports lead triage; there is no front end.

@@ -1,0 +1,19 @@
+{"entities": {"Q7654321": {
+  "id": "Q7654321",
+  "labels": {"en": {"language": "en", "value": "Amara Nwosu"}},
+  "descriptions": {"en": {"language": "en", "value": "Nigerian novelist"}},
+  "claims": {
+    "P31": [{"mainsnak": {"snaktype": "value", "property": "P31",
+      "datavalue": {"value": {"entity-type": "item", "id": "Q5"}, "type": "wikibase-entityid"}}}],
+    "P106": [{"mainsnak": {"snaktype": "value", "property": "P106",
+      "datavalue": {"value": {"entity-type": "item", "id": "Q6625963"}, "type": "wikibase-entityid"}}}],
+    "P856": [{"mainsnak": {"snaktype": "value", "property": "P856",
+      "datavalue": {"value": "https://amara.example", "type": "string"}}}],
+    "P2002": [{"mainsnak": {"snaktype": "value", "property": "P2002",
+      "datavalue": {"value": "amarawrites", "type": "string"}}}],
+    "P2003": [{"mainsnak": {"snaktype": "value", "property": "P2003",
+      "datavalue": {"value": "amara.writes", "type": "string"}}}],
+    "P496": [{"mainsnak": {"snaktype": "value", "property": "P496",
+      "datavalue": {"value": "0000-0002-1825-0097", "type": "string"}}}]
+  }
+}}}

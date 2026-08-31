@@ -25,6 +25,7 @@ from orynx.db.models import (
     RawRecord,
     Source,
 )
+from orynx.enrich.runner import EnrichmentStats, enrich_authors
 from orynx.fetch import PoliteClient
 from orynx.logging import get_logger
 from orynx.pipeline.dedupe import (
@@ -34,7 +35,6 @@ from orynx.pipeline.dedupe import (
     resolve_author,
     resolve_book,
 )
-from orynx.pipeline.enrich import discover_contacts
 from orynx.pipeline.normalize import normalize_book
 from orynx.pipeline.score import DEFAULT_PROFILE, PROFILES, score_lead
 from orynx.sources.base import BaseSource, RawBook
@@ -104,7 +104,6 @@ async def ingest_source(
     *,
     query: str | None = None,
     limit: int = 200,
-    with_contacts: bool = False,
 ) -> RunStats:
     """Run one source end to end and persist everything it produced."""
     stats = RunStats(source_id=source.id)
@@ -112,7 +111,7 @@ async def ingest_source(
     run = CrawlRun(
         source_id=source_row.id,
         status=RUN_RUNNING,
-        params={"query": query, "limit": limit, "with_contacts": with_contacts},
+        params={"query": query, "limit": limit},
     )
     session.add(run)
     session.flush()
@@ -121,15 +120,12 @@ async def ingest_source(
         async for raw in _iterate(source, query, limit):
             stats.fetched += 1
             try:
-                stored = _persist(session, run, source_row, raw, stats)
+                _persist(session, run, source_row, raw, stats)
             except Exception as exc:  # one bad record must not end the crawl
                 log.warning("%s: failed to persist a record (%s)", source.id, exc)
                 stats.errors.append(str(exc)[:300])
                 session.rollback()
                 continue
-
-            if stored and with_contacts:
-                await _attach_contacts(session, client, stored, source.id, stats)
 
             if stats.fetched % 25 == 0:
                 session.commit()
@@ -196,28 +192,30 @@ def _persist(
     return book
 
 
-async def _attach_contacts(
-    session: Session, client: PoliteClient, book: Book, source_id: str, stats: RunStats
-) -> None:
-    for link in book.authors:
-        author = session.get(Author, link.author_id)
-        if author is None or not author.website:
-            continue
-        if any(c.kind == "email" for c in author.contacts):
-            continue  # already have a way to reach them
-        findings = await discover_contacts(client, author.website)
-        for email in findings.emails:
-            record_contact(
-                session, author, "email", email,
-                source_id=source_id, source_url=findings.source_url, confidence=0.6,
-            )
-            stats.contacts += 1
-        for network, url in findings.socials.items():
-            record_contact(
-                session, author, network, url,
-                source_id=source_id, source_url=findings.source_url, confidence=0.8,
-            )
-    session.flush()
+async def enrich_pending_authors(
+    session: Session,
+    client: PoliteClient,
+    *,
+    limit: int | None = None,
+    only_missing_contacts: bool = True,
+) -> EnrichmentStats:
+    """Run the enrichment chain over authors we cannot yet reach.
+
+    Enrichment is per author, not per book: an author with six titles is looked
+    up once, which is both faster and politer than repeating the lookup per book.
+    """
+    stmt = select(Author)
+    if only_missing_contacts:
+        reachable = select(AuthorContact.author_id).distinct()
+        stmt = stmt.where(~Author.id.in_(reachable))
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    authors = list(session.scalars(stmt).all())
+    if not authors:
+        return EnrichmentStats()
+    log.info("enriching %s author(s)", len(authors))
+    return await enrich_authors(session, client, authors)
 
 
 def rebuild_leads(session: Session, profile: str = DEFAULT_PROFILE) -> int:
@@ -314,10 +312,15 @@ async def run_pipeline(
                 continue
             log.info("ingesting %s (limit=%s)", source_id, limit)
             results.append(
-                await ingest_source(
-                    session, client, source,
-                    query=query, limit=limit, with_contacts=with_contacts,
-                )
+                await ingest_source(session, client, source, query=query, limit=limit)
+            )
+        if with_contacts:
+            enrichment = await enrich_pending_authors(session, client)
+            log.info(
+                "enrichment: %s/%s authors reachable, %s contacts added",
+                enrichment.enriched,
+                enrichment.attempted,
+                enrichment.contacts_added,
             )
     finally:
         if owns_client:

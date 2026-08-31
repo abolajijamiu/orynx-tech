@@ -24,9 +24,20 @@ log = get_logger(__name__)
 
 RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
+# Consecutive connection failures before a host is written off for this run.
+CIRCUIT_BREAK_AFTER = 3
+
 
 class RobotsDenied(Exception):
     """Raised when robots.txt disallows a URL and the crawl obeys robots."""
+
+
+class HostUnavailable(Exception):
+    """Raised when a host has failed repeatedly and is being skipped.
+
+    Without this, a blocked or dead host is retried for every record in a run;
+    across thousands of authors that is hours spent waiting on timeouts.
+    """
 
 
 @dataclass
@@ -79,7 +90,11 @@ class PoliteClient:
             self.settings.cache_dir, self.settings.cache_ttl_seconds, enabled=use_cache
         )
         self._semaphore = asyncio.Semaphore(self.settings.default_concurrency)
-        self.stats: dict[str, int] = {"requests": 0, "cache_hits": 0, "errors": 0, "denied": 0}
+        self._consecutive_failures: dict[str, int] = {}
+        self._dead_domains: set[str] = set()
+        self.stats: dict[str, int] = {
+            "requests": 0, "cache_hits": 0, "errors": 0, "denied": 0, "skipped_dead": 0,
+        }
 
     async def __aenter__(self) -> PoliteClient:
         return self
@@ -120,6 +135,13 @@ class PoliteClient:
                     from_cache=True,
                 )
 
+        domain_key = self.domain_of(full_url)
+        if domain_key in self._dead_domains:
+            self.stats["skipped_dead"] += 1
+            raise HostUnavailable(
+                f"{domain_key} failed {CIRCUIT_BREAK_AFTER} times; skipping for this run"
+            )
+
         should_obey = self.obey_robots if obey_robots is None else obey_robots
         if should_obey and not await self._robots.allowed(self._client, full_url):
             self.stats["denied"] += 1
@@ -153,6 +175,9 @@ class PoliteClient:
                     await asyncio.sleep(2**attempt)
                     continue
 
+            # A response of any kind means the host is alive.
+            self._consecutive_failures[domain] = 0
+
             if resp.status_code in RETRYABLE_STATUS and attempt < self.settings.max_retries:
                 backoff = self._retry_after(resp) or 2**attempt
                 self._limiter.penalise(domain, backoff)
@@ -166,6 +191,16 @@ class PoliteClient:
                 text=resp.text,
                 headers=dict(resp.headers),
             )
+
+        failures = self._consecutive_failures.get(domain, 0) + 1
+        self._consecutive_failures[domain] = failures
+        if failures >= CIRCUIT_BREAK_AFTER:
+            log.warning(
+                "%s failed %s times in a row; skipping it for the rest of this run",
+                domain,
+                failures,
+            )
+            self._dead_domains.add(domain)
 
         raise httpx.HTTPError(f"GET {url} failed after retries: {last_error}")
 

@@ -1,0 +1,11 @@
+{
+  "key": "/authors/OL1234A",
+  "name": "Amara Nwosu",
+  "bio": {"value": "Nigerian novelist based in Lagos."},
+  "remote_ids": {"wikidata": "Q7654321", "viaf": "12345", "isni": "0000000121"},
+  "links": [
+    {"title": "Official website", "url": "https://amara.example"},
+    {"title": "Twitter", "url": "https://twitter.com/amarawrites"},
+    {"title": "Goodreads", "url": "https://www.goodreads.com/author/show/999.Amara"}
+  ]
+}

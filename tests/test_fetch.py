@@ -121,3 +121,85 @@ async def test_rate_limiter_serialises_per_domain():
 
 def test_domain_of_is_case_insensitive():
     assert PoliteClient.domain_of("https://PRESS.Test/x") == "press.test"
+
+
+@pytest.mark.asyncio
+async def test_circuit_breaker_stops_hammering_a_dead_host(settings):
+    """A blocked or down host must not be retried once per record."""
+    from orynx.fetch.client import CIRCUIT_BREAK_AFTER, HostUnavailable
+
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        raise httpx.ConnectError("refused")
+
+    client = PoliteClient(
+        settings=settings, use_cache=False, obey_robots=False,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        for _ in range(CIRCUIT_BREAK_AFTER):
+            with pytest.raises(httpx.HTTPError):
+                await client.get("https://dead.test/a")
+        attempts_before = calls["n"]
+
+        # Once broken, further requests fail immediately without touching the network.
+        with pytest.raises(HostUnavailable):
+            await client.get("https://dead.test/b")
+        assert calls["n"] == attempts_before
+        assert client.stats["skipped_dead"] == 1
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_circuit_breaker_is_per_domain(settings):
+    from orynx.fetch.client import CIRCUIT_BREAK_AFTER, HostUnavailable
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "dead.test":
+            raise httpx.ConnectError("refused")
+        return httpx.Response(200, text="alive")
+
+    client = PoliteClient(
+        settings=settings, use_cache=False, obey_robots=False,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        for _ in range(CIRCUIT_BREAK_AFTER):
+            with pytest.raises(httpx.HTTPError):
+                await client.get("https://dead.test/a")
+        with pytest.raises(HostUnavailable):
+            await client.get("https://dead.test/b")
+        # A healthy host is unaffected.
+        assert (await client.get("https://alive.test/x")).ok
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_a_recovered_host_resets_its_failure_count(settings):
+    state = {"fail": True}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if state["fail"]:
+            raise httpx.ConnectError("refused")
+        return httpx.Response(200, text="ok")
+
+    client = PoliteClient(
+        settings=settings, use_cache=False, obey_robots=False,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        with pytest.raises(httpx.HTTPError):
+            await client.get("https://flaky.test/a")
+        state["fail"] = False
+        assert (await client.get("https://flaky.test/b")).ok
+        state["fail"] = True
+        # The earlier failure was forgotten, so this one starts a fresh count.
+        with pytest.raises(httpx.HTTPError):
+            await client.get("https://flaky.test/c")
+        assert "flaky.test" not in client._dead_domains
+    finally:
+        await client.aclose()
