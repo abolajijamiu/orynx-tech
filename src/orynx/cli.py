@@ -38,6 +38,41 @@ def init_db_command() -> None:
     console.print(f"[green]Schema ready[/] at {get_settings().database_url}")
 
 
+@app.command("platforms")
+def list_platforms(
+    category: str = typer.Option(None, "--category", "-c", help="Filter by category."),
+    signal: str = typer.Option(None, "--signal", help="Filter by author purchase signal."),
+    extractable_only: bool = typer.Option(
+        False, "--extractable", help="Hide paywalled and login-gated sites."
+    ),
+) -> None:
+    """List the platforms we harvest authors from."""
+    from orynx.platforms.schema import Registry
+
+    registry = Registry.load()
+    platforms = registry.extractable() if extractable_only else registry.enabled()
+    if category:
+        platforms = [p for p in platforms if p.category == category]
+    if signal:
+        platforms = [p for p in platforms if p.author_signal == signal]
+
+    table = Table(title=f"Platforms ({len(platforms)})", header_style="bold")
+    for column in ("id", "name", "category", "author signal", "country", "wt", "access"):
+        table.add_column(column)
+    for p in sorted(platforms, key=lambda p: (-p.weight, p.id)):
+        table.add_row(
+            p.id, p.name[:26], p.category, p.author_signal, p.country,
+            f"{p.weight:.2f}", p.extractability,
+        )
+    console.print(table)
+
+    groups = {k: v for k, v in registry.by_owner().items() if len(v) > 1}
+    if groups and not (category or signal):
+        console.print("\n[bold]Shared owners[/] (one outreach, not one per brand):")
+        for owner, brands in sorted(groups.items(), key=lambda kv: -len(kv[1])):
+            console.print(f"  {owner}: {', '.join(b.id for b in brands)}")
+
+
 @app.command("sources")
 def list_sources() -> None:
     """List every available source, built-in or recipe-driven."""

@@ -1,0 +1,1803 @@
+# Platform registry. Seed metadata is unverified until the crawler confirms it.
+# `author_signal` records what being listed here says about an author's spending;
+# it is the strongest qualifier available and drives scoring and pitch selection.
+platforms:
+- id: authorhouse
+  name: AuthorHouse
+  homepage: https://www.authorhouse.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - design
+  - marketing
+  - distribution
+  extractability: likely
+  weight: 0.95
+- id: iuniverse
+  name: iUniverse
+  homepage: https://www.iuniverse.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - editing
+  - marketing
+  extractability: likely
+  weight: 0.95
+- id: xlibris
+  name: Xlibris
+  homepage: https://www.xlibris.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - design
+  - marketing
+  extractability: likely
+  weight: 0.95
+- id: trafford
+  name: Trafford Publishing
+  homepage: https://www.trafford.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: CA
+  owner: Author Solutions
+  services:
+  - publishing
+  - distribution
+  extractability: likely
+  weight: 0.9
+- id: archwaypublishing
+  name: Archway Publishing
+  homepage: https://www.archwaypublishing.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.9
+- id: balboapress
+  name: Balboa Press
+  homepage: https://www.balboapress.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.9
+- id: westbowpress
+  name: WestBow Press
+  homepage: https://www.westbowpress.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: Author Solutions
+  services:
+  - publishing
+  - christian
+  extractability: likely
+  weight: 0.9
+- id: austinmacauley
+  name: Austin Macauley
+  homepage: https://www.austinmacauley.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: UK
+  owner: null
+  services:
+  - publishing
+  - contributory
+  - marketing
+  extractability: likely
+  weight: 0.95
+- id: olympiapublishers
+  name: Olympia Publishers
+  homepage: https://www.olympiapublishers.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: UK
+  owner: null
+  services:
+  - publishing
+  - contributory
+  extractability: likely
+  weight: 0.9
+- id: pegasuspublishers
+  name: Pegasus Publishers
+  homepage: https://pegasuspublishers.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: UK
+  owner: null
+  services:
+  - publishing
+  - contributory
+  extractability: likely
+  weight: 0.9
+- id: outskirtspress
+  name: Outskirts Press
+  homepage: https://outskirtspress.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - design
+  - marketing
+  extractability: likely
+  weight: 0.9
+- id: dorrancepublishing
+  name: Dorrance Publishing
+  homepage: https://www.dorrancepublishing.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.9
+- id: booklocker
+  name: BookLocker
+  homepage: https://booklocker.com/
+  category: publisher_vanity
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - distribution
+  extractability: likely
+  weight: 0.8
+- id: pagepublishing
+  name: Page Publishing
+  homepage: https://pagepublishing.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.9
+- id: newmansprings
+  name: Newman Springs Publishing
+  homepage: https://newmansprings.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.85
+- id: fultonbooks
+  name: Fulton Books
+  homepage: https://fultonbooks.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.85
+- id: covenantbooks
+  name: Covenant Books
+  homepage: https://covenantbooks.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - christian
+  extractability: likely
+  weight: 0.85
+- id: christianfaithpublishing
+  name: Christian Faith Publishing
+  homepage: https://www.christianfaithpublishing.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - christian
+  extractability: likely
+  weight: 0.85
+- id: mindstirmedia
+  name: MindStir Media
+  homepage: https://mindstirmedia.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  - pr
+  extractability: likely
+  weight: 0.85
+- id: palmettopublishing
+  name: Palmetto Publishing
+  homepage: https://www.palmettopublishing.com/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - design
+  extractability: likely
+  weight: 0.85
+- id: beyondpublishing
+  name: Beyond Publishing
+  homepage: https://beyondpublishing.net/
+  category: publisher_vanity
+  author_signal: vanity_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - coaching
+  extractability: likely
+  weight: 0.75
+- id: publishnation
+  name: PublishNation
+  homepage: https://www.publishnation.co.uk/
+  category: publisher_vanity
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - publishing
+  - design
+  extractability: likely
+  weight: 0.75
+- id: koehlerbooks
+  name: Koehler Books
+  homepage: https://www.koehlerbooks.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - editing
+  - design
+  extractability: likely
+  weight: 0.85
+- id: greenleafbookgroup
+  name: Greenleaf Book Group
+  homepage: https://greenleafbookgroup.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - distribution
+  - strategy
+  extractability: likely
+  weight: 0.8
+- id: shewritespress
+  name: She Writes Press
+  homepage: https://shewritespress.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - editing
+  extractability: likely
+  weight: 0.8
+- id: sparkpress
+  name: SparkPress
+  homepage: https://www.sparkpress.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.8
+- id: mascotbooks
+  name: Mascot Books
+  homepage: https://mascotbooks.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - design
+  - childrens
+  extractability: likely
+  weight: 0.8
+- id: amplifypublishing
+  name: Amplify Publishing Group
+  homepage: https://www.amplifypublishing.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.8
+- id: pagetwo
+  name: Page Two
+  homepage: https://www.pagetwo.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: CA
+  owner: null
+  services:
+  - publishing
+  - strategy
+  extractability: likely
+  weight: 0.75
+- id: morganjames
+  name: Morgan James Publishing
+  homepage: https://www.morgan-james.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - distribution
+  extractability: likely
+  weight: 0.8
+- id: newdegreepress
+  name: New Degree Press
+  homepage: https://newdegreepress.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - coaching
+  extractability: likely
+  weight: 0.8
+- id: atmospherepress
+  name: Atmosphere Press
+  homepage: https://atmospherepress.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - editing
+  - design
+  extractability: likely
+  weight: 0.85
+- id: bancroftpress
+  name: Bancroft Press
+  homepage: https://www.bancroftpress.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.7
+- id: scribemedia
+  name: Scribe Media
+  homepage: https://scribemedia.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - ghostwriting
+  - publishing
+  extractability: likely
+  weight: 0.75
+- id: booklaunchers
+  name: Book Launchers
+  homepage: https://booklaunchers.com/
+  category: publisher_hybrid
+  author_signal: hybrid_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - marketing
+  extractability: likely
+  weight: 0.75
+- id: eliteauthors
+  name: Elite Authors
+  homepage: https://eliteauthors.com/
+  category: publisher_hybrid
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - editing
+  - design
+  - publishing
+  extractability: likely
+  weight: 0.7
+- id: blackrosewriting
+  name: Black Rose Writing
+  homepage: https://www.blackrosewriting.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.6
+- id: regalhousepublishing
+  name: Regal House Publishing
+  homepage: https://regalhousepublishing.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.55
+- id: sunburypress
+  name: Sunbury Press
+  homepage: https://sunburypress.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.6
+- id: wildrosepress
+  name: Wild Rose Press
+  homepage: https://wildrosepress.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - romance
+  extractability: likely
+  weight: 0.6
+- id: dzancbooks
+  name: Dzanc Books
+  homepage: https://dzancbooks.org/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - literary
+  extractability: likely
+  weight: 0.5
+- id: lanternfishpress
+  name: Lanternfish Press
+  homepage: https://lanternfishpress.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.5
+- id: lethepressbooks
+  name: Lethe Press
+  homepage: https://lethepressbooks.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - lgbtq
+  extractability: likely
+  weight: 0.5
+- id: twodollarradio
+  name: Two Dollar Radio
+  homepage: https://twodollarradio.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - literary
+  extractability: likely
+  weight: 0.5
+- id: feministpress
+  name: Feminist Press
+  homepage: https://feministpress.org/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.45
+- id: woodhallpress
+  name: Woodhall Press
+  homepage: https://www.woodhallpress.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.6
+- id: turnerpublishing
+  name: Turner Publishing
+  homepage: https://turnerpublishing.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.55
+- id: familius
+  name: Familius
+  homepage: https://familius.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - family
+  extractability: likely
+  weight: 0.5
+- id: mangopublishing
+  name: Mango Publishing
+  homepage: https://www.mangopublishinggroup.com/
+  category: publisher_indie
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: likely
+  weight: 0.55
+- id: hayhouse
+  name: Hay House
+  homepage: https://www.hayhouse.com/
+  category: publisher_indie
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  - selfhelp
+  extractability: likely
+  weight: 0.4
+- id: ocebook
+  name: OCE Book
+  homepage: https://ocebook.com/
+  category: publisher_indie
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: unknown
+  weight: 0.6
+- id: writebk
+  name: WriteBK
+  homepage: https://www.writebk.com/
+  category: publisher_indie
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: unknown
+  weight: 0.6
+- id: rottenpublishers
+  name: Rotten Publishers
+  homepage: https://rottenpublishers.com/
+  category: publisher_indie
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - publishing
+  extractability: unknown
+  weight: 0.5
+- id: pacificbookreview
+  name: Pacific Book Review
+  homepage: https://www.pacificbookreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.9
+- id: kirkusreviews
+  name: Kirkus Reviews
+  homepage: https://www.kirkusreviews.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - indie_reviews
+  extractability: paywalled
+  weight: 0.85
+- id: blueinkreview
+  name: BlueInk Review
+  homepage: https://www.blueinkreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.85
+- id: forewordreviews
+  name: Foreword Reviews / Clarion
+  homepage: https://www.forewordreviews.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - clarion
+  extractability: likely
+  weight: 0.85
+- id: theusreview
+  name: US Review of Books
+  homepage: https://www.theusreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.85
+- id: indiereader
+  name: IndieReader
+  homepage: https://indiereader.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - awards
+  extractability: likely
+  weight: 0.85
+- id: readersfavorite
+  name: Readers' Favorite
+  homepage: https://readersfavorite.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - awards
+  extractability: likely
+  weight: 0.9
+- id: citybookreview
+  name: City Book Review
+  homepage: https://citybookreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: City Book Review
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.85
+- id: selfpublishingreview
+  name: Self-Publishing Review
+  homepage: https://www.selfpublishingreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - marketing
+  extractability: likely
+  weight: 0.85
+- id: hollywoodbookreview
+  name: Hollywood Book Review
+  homepage: https://www.hollywoodbookreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.8
+- id: featheredquill
+  name: The Feathered Quill
+  homepage: https://www.featheredquill.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.75
+- id: readerviews
+  name: Reader Views
+  homepage: https://readerviews.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - awards
+  extractability: likely
+  weight: 0.8
+- id: thebookcommentary
+  name: The Book Commentary
+  homepage: https://www.thebookcommentary.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.8
+- id: bookwhisperer
+  name: Book Whisperer
+  homepage: https://www.bookwhisperer.ink/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: unknown
+  weight: 0.7
+- id: bookmonty
+  name: BookMonty
+  homepage: https://bookmonty.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: unknown
+  weight: 0.7
+- id: bookviral
+  name: BookViral
+  homepage: https://www.bookviral.com/
+  category: review_paid
+  author_signal: paid_review
+  country: UK
+  owner: null
+  services:
+  - reviews
+  - awards
+  extractability: likely
+  weight: 0.75
+- id: indiestoday
+  name: Indies Today
+  homepage: https://indiestoday.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - awards
+  extractability: likely
+  weight: 0.75
+- id: independentbookreview
+  name: Independent Book Review
+  homepage: https://independentbookreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - marketing
+  extractability: likely
+  weight: 0.8
+- id: onlinebookclub
+  name: OnlineBookClub
+  homepage: https://onlinebookclub.org/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  - promotion
+  extractability: likely
+  weight: 0.75
+- id: readerdepot
+  name: Reader Depot
+  homepage: https://readerdepot.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: unknown
+  weight: 0.7
+- id: midwestbookreview
+  name: Midwest Book Review
+  homepage: https://midwestbookreview.com/
+  category: review_paid
+  author_signal: paid_review
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.7
+- id: readersentertainment
+  name: Reader's Entertainment
+  homepage: https://readersentertainment.com/
+  category: review_paid
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  - promotion
+  extractability: unknown
+  weight: 0.7
+- id: publishersweekly
+  name: Publishers Weekly
+  homepage: https://www.publishersweekly.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  - news
+  extractability: paywalled
+  weight: 0.35
+- id: booklife
+  name: BookLife
+  homepage: https://booklife.com/
+  category: review_trade
+  author_signal: self_published
+  country: US
+  owner: Publishers Weekly
+  services:
+  - reviews
+  - prize
+  - resources
+  extractability: likely
+  weight: 0.8
+- id: libraryjournal
+  name: Library Journal
+  homepage: https://www.libraryjournal.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: paywalled
+  weight: 0.3
+- id: booklistonline
+  name: Booklist
+  homepage: https://www.booklistonline.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: paywalled
+  weight: 0.3
+- id: bookbrowse
+  name: BookBrowse
+  homepage: https://www.bookbrowse.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  - discovery
+  extractability: likely
+  weight: 0.35
+- id: bookpage
+  name: BookPage
+  homepage: https://www.bookpage.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.35
+- id: nyjournalofbooks
+  name: New York Journal of Books
+  homepage: https://www.nyjournalofbooks.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.4
+- id: bookreporter
+  name: Book Reporter
+  homepage: https://www.bookreporter.com/
+  category: review_trade
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - reviews
+  extractability: likely
+  weight: 0.4
+- id: booktrib
+  name: BookTrib
+  homepage: https://booktrib.com/
+  category: review_trade
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - reviews
+  - promotion
+  extractability: likely
+  weight: 0.65
+- id: nybooks
+  name: New York Review of Books
+  homepage: https://www.nybooks.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  extractability: paywalled
+  weight: 0.2
+- id: lareviewofbooks
+  name: Los Angeles Review of Books
+  homepage: https://lareviewofbooks.org/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  extractability: likely
+  weight: 0.25
+- id: chireviewofbooks
+  name: Chicago Review of Books
+  homepage: https://chireviewofbooks.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  extractability: likely
+  weight: 0.3
+- id: theparisreview
+  name: The Paris Review
+  homepage: https://www.theparisreview.org/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - literary
+  extractability: likely
+  weight: 0.2
+- id: bookforum
+  name: Bookforum
+  homepage: https://www.bookforum.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  extractability: likely
+  weight: 0.2
+- id: therumpus
+  name: The Rumpus
+  homepage: https://therumpus.net/
+  category: review_editorial
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  - literary
+  extractability: likely
+  weight: 0.35
+- id: pshares
+  name: Ploughshares
+  homepage: https://pshares.org/
+  category: review_editorial
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - literary
+  - submissions
+  extractability: likely
+  weight: 0.4
+- id: kenyonreview
+  name: The Kenyon Review
+  homepage: https://kenyonreview.org/
+  category: review_editorial
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - literary
+  - submissions
+  extractability: likely
+  weight: 0.4
+- id: litreactor
+  name: LitReactor
+  homepage: https://litreactor.com/
+  category: education
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - courses
+  - community
+  extractability: likely
+  weight: 0.4
+- id: bookmarks
+  name: Book Marks
+  homepage: https://bookmarks.reviews/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - review_aggregation
+  extractability: likely
+  weight: 0.3
+- id: lithub
+  name: Literary Hub
+  homepage: https://lithub.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - literary
+  - news
+  extractability: likely
+  weight: 0.3
+- id: electricliterature
+  name: Electric Literature
+  homepage: https://electricliterature.com/
+  category: review_editorial
+  author_signal: indie_published
+  country: US
+  owner: null
+  services:
+  - literary
+  extractability: likely
+  weight: 0.3
+- id: themillions
+  name: The Millions
+  homepage: https://themillions.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  extractability: likely
+  weight: 0.3
+- id: bookriot
+  name: Book Riot
+  homepage: https://bookriot.com/
+  category: review_editorial
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - criticism
+  - discovery
+  extractability: likely
+  weight: 0.3
+- id: shelfawareness
+  name: Shelf Awareness
+  homepage: https://www.shelf-awareness.com/
+  category: trade_news
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - news
+  - reviews
+  extractability: likely
+  weight: 0.3
+- id: shelfunbound
+  name: Shelf Unbound
+  homepage: https://shelfunbound.com/
+  category: trade_news
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - magazine
+  - competitions
+  extractability: likely
+  weight: 0.65
+- id: publishersmarketplace
+  name: Publishers Marketplace
+  homepage: https://www.publishersmarketplace.com/
+  category: trade_news
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - deals
+  - news
+  extractability: login_required
+  weight: 0.3
+- id: ingramspark
+  name: IngramSpark
+  homepage: https://www.ingramspark.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - printing
+  - distribution
+  extractability: login_required
+  weight: 0.7
+- id: draft2digital
+  name: Draft2Digital
+  homepage: https://www.draft2digital.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - distribution
+  - formatting
+  extractability: login_required
+  weight: 0.7
+- id: books2read
+  name: Books2Read
+  homepage: https://books2read.com/
+  category: distributor
+  author_signal: self_published
+  country: US
+  owner: Draft2Digital
+  services:
+  - links
+  - distribution
+  extractability: likely
+  weight: 0.7
+- id: publishdrive
+  name: PublishDrive
+  homepage: https://publishdrive.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: HU
+  owner: null
+  services:
+  - distribution
+  extractability: likely
+  weight: 0.7
+- id: lulu
+  name: Lulu
+  homepage: https://www.lulu.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - printing
+  - distribution
+  extractability: likely
+  weight: 0.75
+- id: streetlib
+  name: StreetLib
+  homepage: https://www.streetlib.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: IT
+  owner: null
+  services:
+  - distribution
+  extractability: likely
+  weight: 0.7
+- id: bookvault
+  name: BookVault
+  homepage: https://bookvault.app/
+  category: selfpub_platform
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - printing
+  extractability: likely
+  weight: 0.7
+- id: bookbaby
+  name: BookBaby
+  homepage: https://www.bookbaby.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - printing
+  - distribution
+  - design
+  extractability: likely
+  weight: 0.8
+- id: smashwords
+  name: Smashwords
+  homepage: https://www.smashwords.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: Draft2Digital
+  services:
+  - distribution
+  extractability: likely
+  weight: 0.75
+- id: blurb
+  name: Blurb
+  homepage: https://www.blurb.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - printing
+  - photobooks
+  extractability: likely
+  weight: 0.65
+- id: reedsy
+  name: Reedsy
+  homepage: https://reedsy.com/
+  category: selfpub_platform
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - marketplace
+  - editing
+  - design
+  extractability: likely
+  weight: 0.75
+- id: reedsydiscovery
+  name: Reedsy Discovery
+  homepage: https://reedsy.com/discovery/
+  category: arc_service
+  author_signal: paid_promotion
+  country: UK
+  owner: Reedsy
+  services:
+  - reviews
+  - discovery
+  extractability: likely
+  weight: 0.8
+- id: ingramcontent
+  name: Ingram Content Group
+  homepage: https://www.ingramcontent.com/
+  category: distributor
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - distribution
+  extractability: unknown
+  weight: 0.4
+- id: bakertaylor
+  name: Baker & Taylor
+  homepage: https://www.baker-taylor.com/
+  category: distributor
+  author_signal: trade_published
+  country: US
+  owner: null
+  services:
+  - distribution
+  extractability: unknown
+  weight: 0.3
+- id: troubador
+  name: Troubador / Matador
+  homepage: https://www.troubador.co.uk/
+  category: selfpub_platform
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - publishing
+  - distribution
+  extractability: likely
+  weight: 0.8
+- id: netgalley
+  name: NetGalley
+  homepage: https://www.netgalley.com/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - arc_distribution
+  extractability: login_required
+  weight: 0.7
+- id: booksirens
+  name: BookSirens
+  homepage: https://booksirens.com/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - arc_distribution
+  extractability: likely
+  weight: 0.8
+- id: booksprout
+  name: BookSprout
+  homepage: https://booksprout.co/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - arc_distribution
+  extractability: likely
+  weight: 0.8
+- id: storyorigin
+  name: StoryOrigin
+  homepage: https://storyoriginapp.com/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - arc_distribution
+  - newsletter_swaps
+  extractability: likely
+  weight: 0.75
+- id: bookfunnel
+  name: BookFunnel
+  homepage: https://bookfunnel.com/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - delivery
+  - arc
+  extractability: likely
+  weight: 0.75
+- id: prolificworks
+  name: Prolific Works
+  homepage: https://www.prolificworks.com/
+  category: arc_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - giveaways
+  extractability: likely
+  weight: 0.7
+- id: bookbub
+  name: BookBub
+  homepage: https://www.bookbub.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - deals
+  - ads
+  extractability: likely
+  weight: 0.7
+- id: writtenwordmedia
+  name: Written Word Media
+  homepage: https://www.writtenwordmedia.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: Written Word Media
+  services:
+  - promotion
+  extractability: likely
+  weight: 0.8
+- id: freebooksy
+  name: Freebooksy
+  homepage: https://www.freebooksy.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: Written Word Media
+  services:
+  - deals
+  extractability: likely
+  weight: 0.8
+- id: bargainbooksy
+  name: Bargain Booksy
+  homepage: https://www.bargainbooksy.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: Written Word Media
+  services:
+  - deals
+  extractability: likely
+  weight: 0.8
+- id: robinreads
+  name: Robin Reads
+  homepage: https://robinreads.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - deals
+  extractability: likely
+  weight: 0.8
+- id: ereadernewstoday
+  name: Ereader News Today
+  homepage: https://www.ereadernewstoday.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - deals
+  extractability: likely
+  weight: 0.8
+- id: fussylibrarian
+  name: The Fussy Librarian
+  homepage: https://www.thefussylibrarian.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - deals
+  extractability: likely
+  weight: 0.8
+- id: bookgorilla
+  name: Book Gorilla
+  homepage: https://www.bookgorilla.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - deals
+  extractability: likely
+  weight: 0.75
+- id: newinbooks
+  name: NewInBooks
+  homepage: https://www.newinbooks.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - discovery
+  extractability: likely
+  weight: 0.75
+- id: manybooks
+  name: ManyBooks
+  homepage: https://manybooks.net/
+  category: promo_service
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - discovery
+  - promotion
+  extractability: likely
+  weight: 0.7
+- id: booksgosocial
+  name: BooksGoSocial
+  homepage: https://booksgosocial.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: IE
+  owner: null
+  services:
+  - marketing
+  - ads
+  extractability: likely
+  weight: 0.8
+- id: allauthor
+  name: AllAuthor
+  homepage: https://allauthor.com/
+  category: promo_service
+  author_signal: paid_promotion
+  country: IN
+  owner: null
+  services:
+  - promotion
+  - author_profiles
+  extractability: likely
+  weight: 0.8
+- id: authorsden
+  name: AuthorsDen
+  homepage: https://www.authorsden.com/
+  category: promo_service
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - author_profiles
+  extractability: likely
+  weight: 0.65
+- id: smithpublicity
+  name: Smith Publicity
+  homepage: https://www.smithpublicity.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  - media
+  extractability: likely
+  weight: 0.8
+- id: booksparks
+  name: BookSparks
+  homepage: https://www.booksparks.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  - campaigns
+  extractability: likely
+  weight: 0.8
+- id: booksforward
+  name: Books Forward
+  homepage: https://booksforward.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  extractability: likely
+  weight: 0.8
+- id: bookbuzz
+  name: BookBuzz
+  homepage: https://www.bookbuzz.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  - promotion
+  extractability: likely
+  weight: 0.75
+- id: authormarketingexperts
+  name: Author Marketing Experts
+  homepage: https://authormarketingexperts.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - marketing
+  - pr
+  extractability: likely
+  weight: 0.8
+- id: wildboundpr
+  name: Wildbound PR
+  homepage: https://wildboundpr.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  extractability: likely
+  weight: 0.75
+- id: bookpublicityservices
+  name: Book Publicity Services
+  homepage: https://bookpublicityservices.com/
+  category: pr_agency
+  author_signal: paid_promotion
+  country: US
+  owner: null
+  services:
+  - pr
+  extractability: likely
+  weight: 0.75
+- id: selfpublishingformula
+  name: Self Publishing Formula
+  homepage: https://selfpublishingformula.com/
+  category: education
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - courses
+  - ads_training
+  extractability: likely
+  weight: 0.6
+- id: selfpublishingcom
+  name: SelfPublishing.com
+  homepage: https://selfpublishing.com/
+  category: education
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - courses
+  - coaching
+  extractability: likely
+  weight: 0.65
+- id: thebookdesigner
+  name: The Book Designer
+  homepage: https://www.thebookdesigner.com/
+  category: education
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - resources
+  extractability: likely
+  weight: 0.55
+- id: kindlepreneur
+  name: Kindlepreneur
+  homepage: https://kindlepreneur.com/
+  category: education
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - resources
+  - tools
+  extractability: likely
+  weight: 0.55
+- id: selfpublishingschool
+  name: Self-Publishing School
+  homepage: https://self-publishingschool.com/
+  category: education
+  author_signal: self_published
+  country: US
+  owner: null
+  services:
+  - courses
+  extractability: likely
+  weight: 0.65
+- id: alli
+  name: Alliance of Independent Authors
+  homepage: https://www.allianceindependentauthors.org/
+  category: education
+  author_signal: self_published
+  country: UK
+  owner: null
+  services:
+  - association
+  - advice
+  extractability: likely
+  weight: 0.7
+- id: selfpublishingadvice
+  name: ALLi Advice
+  homepage: https://selfpublishingadvice.org/
+  category: education
+  author_signal: self_published
+  country: UK
+  owner: Alliance of Independent Authors
+  services:
+  - advice
+  extractability: likely
+  weight: 0.6
+- id: writersdigest
+  name: Writer's Digest
+  homepage: https://www.writersdigest.com/
+  category: education
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - resources
+  - competitions
+  extractability: likely
+  weight: 0.6
+- id: pw_org
+  name: Poets & Writers
+  homepage: https://www.pw.org/
+  category: education
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - directory
+  - grants
+  extractability: likely
+  weight: 0.55
+- id: duotrope
+  name: Duotrope
+  homepage: https://duotrope.com/
+  category: education
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - submission_tracker
+  extractability: login_required
+  weight: 0.5
+- id: chillsubs
+  name: Chill Subs
+  homepage: https://www.chillsubs.com/
+  category: education
+  author_signal: seeking_publication
+  country: US
+  owner: null
+  services:
+  - submission_tracker
+  extractability: likely
+  weight: 0.55
+- id: publishizer
+  name: Publishizer
+  homepage: https://publishizer.com/
+  category: crowdfunding
+  author_signal: seeking_publication
+  country: SG
+  owner: null
+  services:
+  - crowdfunding
+  - agent
+  extractability: likely
+  weight: 0.9
