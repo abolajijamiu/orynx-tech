@@ -1,0 +1,48 @@
+/* Namespaced and specific enough to survive a host page's own styles. */
+#orynx-root, #orynx-root * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#orynx-root { position: fixed; z-index: 2147483647; right: 16px; bottom: 16px; color: #111827; }
+#orynx-badge {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px;
+  background: #111827; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; box-shadow: 0 6px 24px rgba(0,0,0,.28);
+}
+#orynx-badge:hover { background: #1f2937; }
+#orynx-count { background: #34d399; color: #052e1a; border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+#orynx-panel {
+  display: none; width: min(460px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 96px));
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0,0,0,.24); flex-direction: column;
+}
+#orynx-root.open #orynx-panel { display: flex; }
+#orynx-root.open #orynx-badge { display: none; }
+.orynx-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
+.orynx-title { font-size: 13px; font-weight: 700; }
+.orynx-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.orynx-x { border: none; background: transparent; font-size: 18px; cursor: pointer; color: #6b7280; line-height: 1; }
+.orynx-filters { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.orynx-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
+.orynx-chip.on { background: #111827; color: #fff; border-color: #111827; }
+.orynx-mode { font-size: 11px; color: #6b7280; margin-left: auto; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.orynx-list { overflow-y: auto; flex: 1; }
+.orynx-item { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; display: flex; gap: 10px; align-items: flex-start; }
+.orynx-item input { margin-top: 3px; }
+.orynx-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.orynx-meta { font-size: 11px; color: #6b7280; margin-top: 3px; line-height: 1.45; }
+.orynx-tier { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+.orynx-A { background: #d1fae5; color: #065f46; }
+.orynx-B { background: #fef3c7; color: #92400e; }
+.orynx-C { background: #f3f4f6; color: #374151; }
+.orynx-D { background: #fee2e2; color: #991b1b; }
+.orynx-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #34d399; margin-right: 4px; }
+.orynx-foot { padding: 10px 14px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; background: #f9fafb; }
+.orynx-btn { flex: 1; padding: 8px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
+.orynx-btn.primary { background: #111827; color: #fff; border-color: #111827; }
+.orynx-empty { padding: 28px 16px; text-align: center; font-size: 12px; color: #6b7280; line-height: 1.6; }
+@media (prefers-color-scheme: dark) {
+  #orynx-panel { background: #111827; border-color: #374151; }
+  #orynx-root { color: #f3f4f6; }
+  .orynx-head, .orynx-foot { background: #0b1220; border-color: #374151; }
+  .orynx-item { border-color: #1f2937; }
+  .orynx-chip, .orynx-btn { background: #1f2937; border-color: #374151; color: #f3f4f6; }
+  .orynx-chip.on, .orynx-btn.primary { background: #34d399; color: #052e1a; border-color: #34d399; }
+}

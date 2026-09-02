@@ -1,0 +1,171 @@
+/**
+ * Extension checks in real Chromium against local fixture pages.
+ *
+ * Self-contained: it serves tests/pages itself, so there is nothing to start
+ * first and no network access involved.
+ *
+ * Two halves, because a content script runs in an isolated world that
+ * page.evaluate cannot reach:
+ *  - extraction is exercised by importing the modules into the page itself,
+ *    against a real DOM;
+ *  - the panel is exercised through the loaded extension, whose UI lives in the
+ *    shared DOM and so is visible to assertions.
+ */
+import { chromium } from "playwright";
+import http from "node:http";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const ROOT = path.resolve(".");
+const EXT = path.join(ROOT, "extension");
+const PAGES = path.join(ROOT, "tests", "pages");
+const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css" };
+
+// Serve fixtures and the extension source from one origin, so the test page can
+// import the modules without cross-origin restrictions.
+const server = http.createServer((req, res) => {
+  const url = decodeURIComponent(req.url.split("?")[0]);
+  const file = url.startsWith("/ext/")
+    ? path.join(EXT, url.slice(5))
+    : path.join(PAGES, url === "/" ? "index.html" : url);
+  if (!file.startsWith(EXT) && !file.startsWith(PAGES)) { res.writeHead(403).end(); return; }
+  fs.readFile(file, (error, body) => {
+    if (error) { res.writeHead(404).end("not found"); return; }
+    res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "text/plain" }).end(body);
+  });
+});
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+const BASE = `http://127.0.0.1:${server.address().port}`;
+
+let failures = 0;
+function check(label, condition, detail = "") {
+  if (!condition) failures += 1;
+  console.log(`  ${condition ? "PASS" : "FAIL"}  ${label}${detail ? `  → ${detail}` : ""}`);
+}
+
+async function extractOn(page, file) {
+  await page.goto(`${BASE}/${file}`, { waitUntil: "domcontentloaded" });
+  await page.addScriptTag({
+    type: "module",
+    content: `
+      import { extractPage } from "${BASE}/ext/src/content/extract.js";
+      const registry = await (await fetch("${BASE}/ext/src/shared/registry.json")).json();
+      window.__records = extractPage(document, location.href, registry);
+      window.__ready = true;`,
+  });
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 10000 });
+  return page.evaluate(() => window.__records);
+}
+
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "orynx-prof-"));
+const context = await chromium.launchPersistentContext(profile, {
+  headless: true,
+  executablePath: CHROME,
+  args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--no-sandbox"],
+});
+const page = await context.newPage();
+
+console.log("\nJSON-LD book page");
+{
+  const records = await extractOn(page, "jsonld_book.html");
+  check("one book extracted", records.length === 1, `got ${records.length}`);
+  const r = records[0] || {};
+  check("title", r.bookName === "The Quiet Harbour", r.bookName);
+  check("author", r.author === "Amara Nwosu", r.author);
+  check("isbn normalised", r.isbn === "9781234567897", r.isbn);
+  check("publish date", r.publishDate === "2026-03-15", r.publishDate);
+  check("publisher", r.publisher === "Demo Hybrid Press", r.publisher);
+  check("reviews count", r.reviewsCount === 4, String(r.reviewsCount));
+  check("ratings count", r.ratingsCount === 7, String(r.ratingsCount));
+  check("average rating", r.averageRating === 4.1, String(r.averageRating));
+  check("price", (r.price || "").startsWith("14.99"), r.price);
+  check("format", r.format === "Paperback", r.format);
+  check("page count", r.pageCount === 312, String(r.pageCount));
+  check("email via canonical domain", r.email === "hello@demopress.example", r.email);
+  check("phone", (r.phone || "").includes("212"), r.phone);
+  check("whatsapp from wa.me", r.whatsapp === "+2348012345678", r.whatsapp);
+  check("linkedin", (r.linkedin || "").includes("demo-hybrid-press"), r.linkedin);
+  check("instagram", (r.instagram || "").includes("demopress"), r.instagram);
+  check("contact page discovered", (r.contactPage || "").includes("submissions"), r.contactPage);
+  check("classified hybrid from page text", r.category === "publisher_hybrid", r.category);
+  check("pitch generated", (r.idealPitch || "").length > 20, (r.idealPitch || "").slice(0, 44));
+  check("priority scored", typeof r.priority === "number" && r.priority > 0, String(r.priority));
+  check("via jsonld", r.extractedBy === "jsonld", r.extractedBy);
+}
+
+console.log("\nUnstructured listing page (heuristics only)");
+{
+  const records = await extractOn(page, "listing.html");
+  check("two real books, news card rejected", records.length === 2,
+        records.map((r) => r.bookName).join(" | "));
+  const tide = records.find((r) => r.bookName === "Tidewater") || {};
+  check("multi-author byline split", tide.author === "Amara Nwosu; Peter Blake", tide.author);
+  check("isbn from body text", tide.isbn === "9780306406157", tide.isbn);
+  check("review count not fused with price", tide.reviewsCount === 1204, String(tide.reviewsCount));
+  check("publish date from text", (tide.publishDate || "").includes("2019"), tide.publishDate);
+  check("price captured", (tide.price || "").includes("12.99"), tide.price);
+  const ash = records.find((r) => r.bookName === "Ashfall") || {};
+  check("second book author", ash.author === "Chidi Okonkwo", ash.author);
+  check("whatsapp from labelled text", (ash.whatsapp || "").includes("7700"), ash.whatsapp);
+  check("third-party generic inbox dropped", !ash.email, String(ash.email));
+}
+
+console.log("\nByline parsing across name formats");
+{
+  const records = await extractOn(page, "bylines.html");
+  const byTitle = Object.fromEntries(records.map((r) => [r.bookName, r.author]));
+  check("acronym does not become an author", byTitle["Tidewater"] === "Amara Nwosu; Peter Blake", byTitle["Tidewater"]);
+  check("field label does not become an author", byTitle["Ashfall"] === "Chidi Okonkwo", byTitle["Ashfall"]);
+  check("initials preserved", byTitle["Three Voices"] === "A. Ali; B. Bell; C. Cruz", byTitle["Three Voices"]);
+  check("lowercase particle kept", byTitle["River Between"] === "Ngugi wa Thiongo", byTitle["River Between"]);
+  check("internal capital kept", byTitle["Late Modernism"] === "Ronan McDonald", byTitle["Late Modernism"]);
+  check("apostrophe kept, price excluded", byTitle["At Swim"] === "Flann O'Brien", byTitle["At Swim"]);
+  check("dutch particle kept", byTitle["Ninth Symphony"] === "Ludwig van Beethoven", byTitle["Ninth Symphony"]);
+  check("non-book card rejected", !("Company News" in byTitle), Object.keys(byTitle).join(","));
+}
+
+console.log("\nMeta-tag-only page");
+{
+  const records = await extractOn(page, "meta_book.html");
+  check("one book from meta tags", records.length === 1, `got ${records.length}`);
+  const r = records[0] || {};
+  check("title", r.bookName === "The Salt Road", r.bookName);
+  check("author", r.author === "Marion Adebayo", r.author);
+  check("isbn", r.isbn === "9780306406157", r.isbn);
+  check("launch date", r.launchDate === "2025-11-04", r.launchDate);
+  check("classified vanity from page text", r.category === "publisher_vanity", r.category);
+  check("own-domain email kept", r.email === "editor@oldpublisher.example", r.email);
+  check("vanity signal lifts priority", r.priority > 40, String(r.priority));
+  check("via meta", r.extractedBy === "meta", r.extractedBy);
+}
+
+console.log("\nPanel UI (extension loaded)");
+{
+  await page.goto(`${BASE}/jsonld_book.html`, { waitUntil: "domcontentloaded" });
+  const appeared = await page.waitForSelector("#orynx-badge", { timeout: 15000 })
+    .then(() => true).catch(() => false);
+  check("content script injected the badge", appeared);
+  if (appeared) {
+    check("badge shows one record", (await page.textContent("#orynx-count")) === "1");
+    await page.click("#orynx-badge");
+    check("panel opens", await page.isVisible("#orynx-panel"));
+    check("book is listed", (await page.textContent(".orynx-list")).includes("The Quiet Harbour"));
+    await page.click('.orynx-chip[data-channel="whatsapp"]');
+    check("whatsapp filter keeps a record that has one", (await page.textContent("#orynx-count")) === "1");
+
+    await page.goto(`${BASE}/listing.html`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("#orynx-badge", { timeout: 15000 });
+    await page.click("#orynx-badge");
+    await page.click('.orynx-chip[data-channel="email"]');
+    check("email filter hides rows with no email", (await page.textContent("#orynx-count")) === "0");
+  }
+}
+
+await context.close();
+fs.rmSync(profile, { recursive: true, force: true });
+server.close();
+console.log(failures ? `\n${failures} check(s) FAILED\n` : "\nAll checks passed\n");
+process.exit(failures ? 1 : 0);

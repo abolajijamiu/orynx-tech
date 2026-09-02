@@ -1,0 +1,26 @@
+{
+  "name": "orynx-bookleads",
+  "version": "1.0.0",
+  "description": "Extract book and author leads from publishing platforms — bibliographic APIs, publisher catalogues, retailers and review sites — then deduplicate, score and export them to a spreadsheet.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abolajijamiu/orynx-tech.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/abolajijamiu/orynx-tech/issues"
+  },
+  "homepage": "https://github.com/abolajijamiu/orynx-tech#readme",
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}

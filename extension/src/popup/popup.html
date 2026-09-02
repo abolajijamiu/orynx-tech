@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Orynx Book Leads</title>
+<link rel="stylesheet" href="popup.css">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Orynx Book Leads</h1>
+      <p id="summary">Loading…</p>
+    </div>
+  </header>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Search title, author or company">
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="list" class="list"></div>
+  <footer>
+    <button id="rescan">Rescan page</button>
+    <button id="export" class="primary">Export CSV</button>
+    <button id="clear" class="danger" title="Delete every saved lead">Clear</button>
+  </footer>
+</div>
+<script type="module" src="popup.js"></script>

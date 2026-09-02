@@ -1,0 +1,1941 @@
+{
+"allauthor.com": {
+"category": "promo_service",
+"country": "IN",
+"id": "allauthor",
+"name": "AllAuthor",
+"owner": null,
+"services": [
+"promotion",
+"author_profiles"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"allianceindependentauthors.org": {
+"category": "education",
+"country": "UK",
+"id": "alli",
+"name": "Alliance of Independent Authors",
+"owner": null,
+"services": [
+"association",
+"advice"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"amplifypublishing.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "amplifypublishing",
+"name": "Amplify Publishing Group",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"archwaypublishing.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "archwaypublishing",
+"name": "Archway Publishing",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"atmospherepress.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "atmospherepress",
+"name": "Atmosphere Press",
+"owner": null,
+"services": [
+"publishing",
+"editing",
+"design"
+],
+"signal": "hybrid_published",
+"weight": 0.85
+},
+"austinmacauley.com": {
+"category": "publisher_vanity",
+"country": "UK",
+"id": "austinmacauley",
+"name": "Austin Macauley",
+"owner": null,
+"services": [
+"publishing",
+"contributory",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.95
+},
+"authorhouse.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "authorhouse",
+"name": "AuthorHouse",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"design",
+"marketing",
+"distribution"
+],
+"signal": "vanity_published",
+"weight": 0.95
+},
+"authormarketingexperts.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "authormarketingexperts",
+"name": "Author Marketing Experts",
+"owner": null,
+"services": [
+"marketing",
+"pr"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"authorsden.com": {
+"category": "promo_service",
+"country": "US",
+"id": "authorsden",
+"name": "AuthorsDen",
+"owner": null,
+"services": [
+"author_profiles"
+],
+"signal": "self_published",
+"weight": 0.65
+},
+"baker-taylor.com": {
+"category": "distributor",
+"country": "US",
+"id": "bakertaylor",
+"name": "Baker & Taylor",
+"owner": null,
+"services": [
+"distribution"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"balboapress.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "balboapress",
+"name": "Balboa Press",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"bancroftpress.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "bancroftpress",
+"name": "Bancroft Press",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "hybrid_published",
+"weight": 0.7
+},
+"bargainbooksy.com": {
+"category": "promo_service",
+"country": "US",
+"id": "bargainbooksy",
+"name": "Bargain Booksy",
+"owner": "Written Word Media",
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"beyondpublishing.net": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "beyondpublishing",
+"name": "Beyond Publishing",
+"owner": null,
+"services": [
+"publishing",
+"coaching"
+],
+"signal": "vanity_published",
+"weight": 0.75
+},
+"blackrosewriting.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "blackrosewriting",
+"name": "Black Rose Writing",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.6
+},
+"blueinkreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "blueinkreview",
+"name": "BlueInk Review",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"blurb.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "blurb",
+"name": "Blurb",
+"owner": null,
+"services": [
+"printing",
+"photobooks"
+],
+"signal": "self_published",
+"weight": 0.65
+},
+"bookbaby.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "bookbaby",
+"name": "BookBaby",
+"owner": null,
+"services": [
+"printing",
+"distribution",
+"design"
+],
+"signal": "self_published",
+"weight": 0.8
+},
+"bookbrowse.com": {
+"category": "review_trade",
+"country": "US",
+"id": "bookbrowse",
+"name": "BookBrowse",
+"owner": null,
+"services": [
+"reviews",
+"discovery"
+],
+"signal": "trade_published",
+"weight": 0.35
+},
+"bookbub.com": {
+"category": "promo_service",
+"country": "US",
+"id": "bookbub",
+"name": "BookBub",
+"owner": null,
+"services": [
+"deals",
+"ads"
+],
+"signal": "paid_promotion",
+"weight": 0.7
+},
+"bookbuzz.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "bookbuzz",
+"name": "BookBuzz",
+"owner": null,
+"services": [
+"pr",
+"promotion"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"bookforum.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "bookforum",
+"name": "Bookforum",
+"owner": null,
+"services": [
+"criticism"
+],
+"signal": "trade_published",
+"weight": 0.2
+},
+"bookfunnel.com": {
+"category": "arc_service",
+"country": "US",
+"id": "bookfunnel",
+"name": "BookFunnel",
+"owner": null,
+"services": [
+"delivery",
+"arc"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"bookgorilla.com": {
+"category": "promo_service",
+"country": "US",
+"id": "bookgorilla",
+"name": "Book Gorilla",
+"owner": null,
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"booklaunchers.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "booklaunchers",
+"name": "Book Launchers",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "hybrid_published",
+"weight": 0.75
+},
+"booklife.com": {
+"category": "review_trade",
+"country": "US",
+"id": "booklife",
+"name": "BookLife",
+"owner": "Publishers Weekly",
+"services": [
+"reviews",
+"prize",
+"resources"
+],
+"signal": "self_published",
+"weight": 0.8
+},
+"booklistonline.com": {
+"category": "review_trade",
+"country": "US",
+"id": "booklistonline",
+"name": "Booklist",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"booklocker.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "booklocker",
+"name": "BookLocker",
+"owner": null,
+"services": [
+"publishing",
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.8
+},
+"bookmarks.reviews": {
+"category": "review_editorial",
+"country": "US",
+"id": "bookmarks",
+"name": "Book Marks",
+"owner": null,
+"services": [
+"review_aggregation"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"bookmonty.com": {
+"category": "review_paid",
+"country": "US",
+"id": "bookmonty",
+"name": "BookMonty",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.7
+},
+"bookpage.com": {
+"category": "review_trade",
+"country": "US",
+"id": "bookpage",
+"name": "BookPage",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.35
+},
+"bookpublicityservices.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "bookpublicityservices",
+"name": "Book Publicity Services",
+"owner": null,
+"services": [
+"pr"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"bookreporter.com": {
+"category": "review_trade",
+"country": "US",
+"id": "bookreporter",
+"name": "Book Reporter",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.4
+},
+"bookriot.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "bookriot",
+"name": "Book Riot",
+"owner": null,
+"services": [
+"criticism",
+"discovery"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"books2read.com": {
+"category": "distributor",
+"country": "US",
+"id": "books2read",
+"name": "Books2Read",
+"owner": "Draft2Digital",
+"services": [
+"links",
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"booksforward.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "booksforward",
+"name": "Books Forward",
+"owner": null,
+"services": [
+"pr"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"booksgosocial.com": {
+"category": "promo_service",
+"country": "IE",
+"id": "booksgosocial",
+"name": "BooksGoSocial",
+"owner": null,
+"services": [
+"marketing",
+"ads"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"booksirens.com": {
+"category": "arc_service",
+"country": "US",
+"id": "booksirens",
+"name": "BookSirens",
+"owner": null,
+"services": [
+"arc_distribution"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"booksparks.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "booksparks",
+"name": "BookSparks",
+"owner": null,
+"services": [
+"pr",
+"campaigns"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"booksprout.co": {
+"category": "arc_service",
+"country": "US",
+"id": "booksprout",
+"name": "BookSprout",
+"owner": null,
+"services": [
+"arc_distribution"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"booktrib.com": {
+"category": "review_trade",
+"country": "US",
+"id": "booktrib",
+"name": "BookTrib",
+"owner": null,
+"services": [
+"reviews",
+"promotion"
+],
+"signal": "paid_promotion",
+"weight": 0.65
+},
+"bookvault.app": {
+"category": "selfpub_platform",
+"country": "UK",
+"id": "bookvault",
+"name": "BookVault",
+"owner": null,
+"services": [
+"printing"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"bookviral.com": {
+"category": "review_paid",
+"country": "UK",
+"id": "bookviral",
+"name": "BookViral",
+"owner": null,
+"services": [
+"reviews",
+"awards"
+],
+"signal": "paid_review",
+"weight": 0.75
+},
+"bookwhisperer.ink": {
+"category": "review_paid",
+"country": "US",
+"id": "bookwhisperer",
+"name": "Book Whisperer",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.7
+},
+"chillsubs.com": {
+"category": "education",
+"country": "US",
+"id": "chillsubs",
+"name": "Chill Subs",
+"owner": null,
+"services": [
+"submission_tracker"
+],
+"signal": "seeking_publication",
+"weight": 0.55
+},
+"chireviewofbooks.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "chireviewofbooks",
+"name": "Chicago Review of Books",
+"owner": null,
+"services": [
+"criticism"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"christianfaithpublishing.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "christianfaithpublishing",
+"name": "Christian Faith Publishing",
+"owner": null,
+"services": [
+"publishing",
+"christian"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"citybookreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "citybookreview",
+"name": "City Book Review",
+"owner": "City Book Review",
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"covenantbooks.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "covenantbooks",
+"name": "Covenant Books",
+"owner": null,
+"services": [
+"publishing",
+"christian"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"dorrancepublishing.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "dorrancepublishing",
+"name": "Dorrance Publishing",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"draft2digital.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "draft2digital",
+"name": "Draft2Digital",
+"owner": null,
+"services": [
+"distribution",
+"formatting"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"duotrope.com": {
+"category": "education",
+"country": "US",
+"id": "duotrope",
+"name": "Duotrope",
+"owner": null,
+"services": [
+"submission_tracker"
+],
+"signal": "seeking_publication",
+"weight": 0.5
+},
+"dzancbooks.org": {
+"category": "publisher_indie",
+"country": "US",
+"id": "dzancbooks",
+"name": "Dzanc Books",
+"owner": null,
+"services": [
+"publishing",
+"literary"
+],
+"signal": "indie_published",
+"weight": 0.5
+},
+"electricliterature.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "electricliterature",
+"name": "Electric Literature",
+"owner": null,
+"services": [
+"literary"
+],
+"signal": "indie_published",
+"weight": 0.3
+},
+"eliteauthors.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "eliteauthors",
+"name": "Elite Authors",
+"owner": null,
+"services": [
+"editing",
+"design",
+"publishing"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"ereadernewstoday.com": {
+"category": "promo_service",
+"country": "US",
+"id": "ereadernewstoday",
+"name": "Ereader News Today",
+"owner": null,
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"familius.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "familius",
+"name": "Familius",
+"owner": null,
+"services": [
+"publishing",
+"family"
+],
+"signal": "indie_published",
+"weight": 0.5
+},
+"featheredquill.com": {
+"category": "review_paid",
+"country": "US",
+"id": "featheredquill",
+"name": "The Feathered Quill",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.75
+},
+"feministpress.org": {
+"category": "publisher_indie",
+"country": "US",
+"id": "feministpress",
+"name": "Feminist Press",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.45
+},
+"forewordreviews.com": {
+"category": "review_paid",
+"country": "US",
+"id": "forewordreviews",
+"name": "Foreword Reviews / Clarion",
+"owner": null,
+"services": [
+"reviews",
+"clarion"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"freebooksy.com": {
+"category": "promo_service",
+"country": "US",
+"id": "freebooksy",
+"name": "Freebooksy",
+"owner": "Written Word Media",
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"fultonbooks.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "fultonbooks",
+"name": "Fulton Books",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"greenleafbookgroup.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "greenleafbookgroup",
+"name": "Greenleaf Book Group",
+"owner": null,
+"services": [
+"publishing",
+"distribution",
+"strategy"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"hayhouse.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "hayhouse",
+"name": "Hay House",
+"owner": null,
+"services": [
+"publishing",
+"selfhelp"
+],
+"signal": "trade_published",
+"weight": 0.4
+},
+"hollywoodbookreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "hollywoodbookreview",
+"name": "Hollywood Book Review",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.8
+},
+"independentbookreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "independentbookreview",
+"name": "Independent Book Review",
+"owner": null,
+"services": [
+"reviews",
+"marketing"
+],
+"signal": "paid_review",
+"weight": 0.8
+},
+"indiereader.com": {
+"category": "review_paid",
+"country": "US",
+"id": "indiereader",
+"name": "IndieReader",
+"owner": null,
+"services": [
+"reviews",
+"awards"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"indiestoday.com": {
+"category": "review_paid",
+"country": "US",
+"id": "indiestoday",
+"name": "Indies Today",
+"owner": null,
+"services": [
+"reviews",
+"awards"
+],
+"signal": "paid_review",
+"weight": 0.75
+},
+"ingramcontent.com": {
+"category": "distributor",
+"country": "US",
+"id": "ingramcontent",
+"name": "Ingram Content Group",
+"owner": null,
+"services": [
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.4
+},
+"ingramspark.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "ingramspark",
+"name": "IngramSpark",
+"owner": null,
+"services": [
+"printing",
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"iuniverse.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "iuniverse",
+"name": "iUniverse",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"editing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.95
+},
+"kenyonreview.org": {
+"category": "review_editorial",
+"country": "US",
+"id": "kenyonreview",
+"name": "The Kenyon Review",
+"owner": null,
+"services": [
+"literary",
+"submissions"
+],
+"signal": "seeking_publication",
+"weight": 0.4
+},
+"kindlepreneur.com": {
+"category": "education",
+"country": "US",
+"id": "kindlepreneur",
+"name": "Kindlepreneur",
+"owner": null,
+"services": [
+"resources",
+"tools"
+],
+"signal": "self_published",
+"weight": 0.55
+},
+"kirkusreviews.com": {
+"category": "review_paid",
+"country": "US",
+"id": "kirkusreviews",
+"name": "Kirkus Reviews",
+"owner": null,
+"services": [
+"reviews",
+"indie_reviews"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"koehlerbooks.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "koehlerbooks",
+"name": "Koehler Books",
+"owner": null,
+"services": [
+"publishing",
+"editing",
+"design"
+],
+"signal": "hybrid_published",
+"weight": 0.85
+},
+"lanternfishpress.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "lanternfishpress",
+"name": "Lanternfish Press",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.5
+},
+"lareviewofbooks.org": {
+"category": "review_editorial",
+"country": "US",
+"id": "lareviewofbooks",
+"name": "Los Angeles Review of Books",
+"owner": null,
+"services": [
+"criticism"
+],
+"signal": "trade_published",
+"weight": 0.25
+},
+"lethepressbooks.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "lethepressbooks",
+"name": "Lethe Press",
+"owner": null,
+"services": [
+"publishing",
+"lgbtq"
+],
+"signal": "indie_published",
+"weight": 0.5
+},
+"libraryjournal.com": {
+"category": "review_trade",
+"country": "US",
+"id": "libraryjournal",
+"name": "Library Journal",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"lithub.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "lithub",
+"name": "Literary Hub",
+"owner": null,
+"services": [
+"literary",
+"news"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"litreactor.com": {
+"category": "education",
+"country": "US",
+"id": "litreactor",
+"name": "LitReactor",
+"owner": null,
+"services": [
+"courses",
+"community"
+],
+"signal": "seeking_publication",
+"weight": 0.4
+},
+"lulu.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "lulu",
+"name": "Lulu",
+"owner": null,
+"services": [
+"printing",
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.75
+},
+"mangopublishinggroup.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "mangopublishing",
+"name": "Mango Publishing",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.55
+},
+"manybooks.net": {
+"category": "promo_service",
+"country": "US",
+"id": "manybooks",
+"name": "ManyBooks",
+"owner": null,
+"services": [
+"discovery",
+"promotion"
+],
+"signal": "paid_promotion",
+"weight": 0.7
+},
+"mascotbooks.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "mascotbooks",
+"name": "Mascot Books",
+"owner": null,
+"services": [
+"publishing",
+"design",
+"childrens"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"midwestbookreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "midwestbookreview",
+"name": "Midwest Book Review",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.7
+},
+"mindstirmedia.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "mindstirmedia",
+"name": "MindStir Media",
+"owner": null,
+"services": [
+"publishing",
+"marketing",
+"pr"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"morgan-james.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "morganjames",
+"name": "Morgan James Publishing",
+"owner": null,
+"services": [
+"publishing",
+"distribution"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"netgalley.com": {
+"category": "arc_service",
+"country": "US",
+"id": "netgalley",
+"name": "NetGalley",
+"owner": null,
+"services": [
+"arc_distribution"
+],
+"signal": "paid_promotion",
+"weight": 0.7
+},
+"newdegreepress.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "newdegreepress",
+"name": "New Degree Press",
+"owner": null,
+"services": [
+"publishing",
+"coaching"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"newinbooks.com": {
+"category": "promo_service",
+"country": "US",
+"id": "newinbooks",
+"name": "NewInBooks",
+"owner": null,
+"services": [
+"discovery"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"newmansprings.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "newmansprings",
+"name": "Newman Springs Publishing",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"nybooks.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "nybooks",
+"name": "New York Review of Books",
+"owner": null,
+"services": [
+"criticism"
+],
+"signal": "trade_published",
+"weight": 0.2
+},
+"nyjournalofbooks.com": {
+"category": "review_trade",
+"country": "US",
+"id": "nyjournalofbooks",
+"name": "New York Journal of Books",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.4
+},
+"ocebook.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "ocebook",
+"name": "OCE Book",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "self_published",
+"weight": 0.6
+},
+"olympiapublishers.com": {
+"category": "publisher_vanity",
+"country": "UK",
+"id": "olympiapublishers",
+"name": "Olympia Publishers",
+"owner": null,
+"services": [
+"publishing",
+"contributory"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"onlinebookclub.org": {
+"category": "review_paid",
+"country": "US",
+"id": "onlinebookclub",
+"name": "OnlineBookClub",
+"owner": null,
+"services": [
+"reviews",
+"promotion"
+],
+"signal": "paid_review",
+"weight": 0.75
+},
+"outskirtspress.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "outskirtspress",
+"name": "Outskirts Press",
+"owner": null,
+"services": [
+"publishing",
+"design",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"pacificbookreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "pacificbookreview",
+"name": "Pacific Book Review",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.9
+},
+"pagepublishing.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "pagepublishing",
+"name": "Page Publishing",
+"owner": null,
+"services": [
+"publishing",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"pagetwo.com": {
+"category": "publisher_hybrid",
+"country": "CA",
+"id": "pagetwo",
+"name": "Page Two",
+"owner": null,
+"services": [
+"publishing",
+"strategy"
+],
+"signal": "hybrid_published",
+"weight": 0.75
+},
+"palmettopublishing.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "palmettopublishing",
+"name": "Palmetto Publishing",
+"owner": null,
+"services": [
+"publishing",
+"design"
+],
+"signal": "vanity_published",
+"weight": 0.85
+},
+"pegasuspublishers.com": {
+"category": "publisher_vanity",
+"country": "UK",
+"id": "pegasuspublishers",
+"name": "Pegasus Publishers",
+"owner": null,
+"services": [
+"publishing",
+"contributory"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"prolificworks.com": {
+"category": "arc_service",
+"country": "US",
+"id": "prolificworks",
+"name": "Prolific Works",
+"owner": null,
+"services": [
+"giveaways"
+],
+"signal": "paid_promotion",
+"weight": 0.7
+},
+"pshares.org": {
+"category": "review_editorial",
+"country": "US",
+"id": "pshares",
+"name": "Ploughshares",
+"owner": null,
+"services": [
+"literary",
+"submissions"
+],
+"signal": "seeking_publication",
+"weight": 0.4
+},
+"publishdrive.com": {
+"category": "selfpub_platform",
+"country": "HU",
+"id": "publishdrive",
+"name": "PublishDrive",
+"owner": null,
+"services": [
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"publishersmarketplace.com": {
+"category": "trade_news",
+"country": "US",
+"id": "publishersmarketplace",
+"name": "Publishers Marketplace",
+"owner": null,
+"services": [
+"deals",
+"news"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"publishersweekly.com": {
+"category": "review_trade",
+"country": "US",
+"id": "publishersweekly",
+"name": "Publishers Weekly",
+"owner": null,
+"services": [
+"reviews",
+"news"
+],
+"signal": "trade_published",
+"weight": 0.35
+},
+"publishizer.com": {
+"category": "crowdfunding",
+"country": "SG",
+"id": "publishizer",
+"name": "Publishizer",
+"owner": null,
+"services": [
+"crowdfunding",
+"agent"
+],
+"signal": "seeking_publication",
+"weight": 0.9
+},
+"publishnation.co.uk": {
+"category": "publisher_vanity",
+"country": "UK",
+"id": "publishnation",
+"name": "PublishNation",
+"owner": null,
+"services": [
+"publishing",
+"design"
+],
+"signal": "self_published",
+"weight": 0.75
+},
+"pw.org": {
+"category": "education",
+"country": "US",
+"id": "pw_org",
+"name": "Poets & Writers",
+"owner": null,
+"services": [
+"directory",
+"grants"
+],
+"signal": "seeking_publication",
+"weight": 0.55
+},
+"readerdepot.com": {
+"category": "review_paid",
+"country": "US",
+"id": "readerdepot",
+"name": "Reader Depot",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.7
+},
+"readersentertainment.com": {
+"category": "review_paid",
+"country": "US",
+"id": "readersentertainment",
+"name": "Reader's Entertainment",
+"owner": null,
+"services": [
+"pr",
+"promotion"
+],
+"signal": "paid_promotion",
+"weight": 0.7
+},
+"readersfavorite.com": {
+"category": "review_paid",
+"country": "US",
+"id": "readersfavorite",
+"name": "Readers' Favorite",
+"owner": null,
+"services": [
+"reviews",
+"awards"
+],
+"signal": "paid_review",
+"weight": 0.9
+},
+"readerviews.com": {
+"category": "review_paid",
+"country": "US",
+"id": "readerviews",
+"name": "Reader Views",
+"owner": null,
+"services": [
+"reviews",
+"awards"
+],
+"signal": "paid_review",
+"weight": 0.8
+},
+"reedsy.com": {
+"category": "arc_service",
+"country": "UK",
+"id": "reedsydiscovery",
+"name": "Reedsy Discovery",
+"owner": "Reedsy",
+"services": [
+"reviews",
+"discovery"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"regalhousepublishing.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "regalhousepublishing",
+"name": "Regal House Publishing",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.55
+},
+"robinreads.com": {
+"category": "promo_service",
+"country": "US",
+"id": "robinreads",
+"name": "Robin Reads",
+"owner": null,
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"rottenpublishers.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "rottenpublishers",
+"name": "Rotten Publishers",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "self_published",
+"weight": 0.5
+},
+"scribemedia.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "scribemedia",
+"name": "Scribe Media",
+"owner": null,
+"services": [
+"ghostwriting",
+"publishing"
+],
+"signal": "hybrid_published",
+"weight": 0.75
+},
+"self-publishingschool.com": {
+"category": "education",
+"country": "US",
+"id": "selfpublishingschool",
+"name": "Self-Publishing School",
+"owner": null,
+"services": [
+"courses"
+],
+"signal": "self_published",
+"weight": 0.65
+},
+"selfpublishing.com": {
+"category": "education",
+"country": "US",
+"id": "selfpublishingcom",
+"name": "SelfPublishing.com",
+"owner": null,
+"services": [
+"courses",
+"coaching"
+],
+"signal": "self_published",
+"weight": 0.65
+},
+"selfpublishingadvice.org": {
+"category": "education",
+"country": "UK",
+"id": "selfpublishingadvice",
+"name": "ALLi Advice",
+"owner": "Alliance of Independent Authors",
+"services": [
+"advice"
+],
+"signal": "self_published",
+"weight": 0.6
+},
+"selfpublishingformula.com": {
+"category": "education",
+"country": "UK",
+"id": "selfpublishingformula",
+"name": "Self Publishing Formula",
+"owner": null,
+"services": [
+"courses",
+"ads_training"
+],
+"signal": "self_published",
+"weight": 0.6
+},
+"selfpublishingreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "selfpublishingreview",
+"name": "Self-Publishing Review",
+"owner": null,
+"services": [
+"reviews",
+"marketing"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"shelf-awareness.com": {
+"category": "trade_news",
+"country": "US",
+"id": "shelfawareness",
+"name": "Shelf Awareness",
+"owner": null,
+"services": [
+"news",
+"reviews"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"shelfunbound.com": {
+"category": "trade_news",
+"country": "US",
+"id": "shelfunbound",
+"name": "Shelf Unbound",
+"owner": null,
+"services": [
+"magazine",
+"competitions"
+],
+"signal": "paid_promotion",
+"weight": 0.65
+},
+"shewritespress.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "shewritespress",
+"name": "She Writes Press",
+"owner": null,
+"services": [
+"publishing",
+"editing"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"smashwords.com": {
+"category": "selfpub_platform",
+"country": "US",
+"id": "smashwords",
+"name": "Smashwords",
+"owner": "Draft2Digital",
+"services": [
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.75
+},
+"smithpublicity.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "smithpublicity",
+"name": "Smith Publicity",
+"owner": null,
+"services": [
+"pr",
+"media"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"sparkpress.com": {
+"category": "publisher_hybrid",
+"country": "US",
+"id": "sparkpress",
+"name": "SparkPress",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "hybrid_published",
+"weight": 0.8
+},
+"storyoriginapp.com": {
+"category": "arc_service",
+"country": "US",
+"id": "storyorigin",
+"name": "StoryOrigin",
+"owner": null,
+"services": [
+"arc_distribution",
+"newsletter_swaps"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"streetlib.com": {
+"category": "selfpub_platform",
+"country": "IT",
+"id": "streetlib",
+"name": "StreetLib",
+"owner": null,
+"services": [
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.7
+},
+"sunburypress.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "sunburypress",
+"name": "Sunbury Press",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.6
+},
+"thebookcommentary.com": {
+"category": "review_paid",
+"country": "US",
+"id": "thebookcommentary",
+"name": "The Book Commentary",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.8
+},
+"thebookdesigner.com": {
+"category": "education",
+"country": "US",
+"id": "thebookdesigner",
+"name": "The Book Designer",
+"owner": null,
+"services": [
+"resources"
+],
+"signal": "self_published",
+"weight": 0.55
+},
+"thefussylibrarian.com": {
+"category": "promo_service",
+"country": "US",
+"id": "fussylibrarian",
+"name": "The Fussy Librarian",
+"owner": null,
+"services": [
+"deals"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"themillions.com": {
+"category": "review_editorial",
+"country": "US",
+"id": "themillions",
+"name": "The Millions",
+"owner": null,
+"services": [
+"criticism"
+],
+"signal": "trade_published",
+"weight": 0.3
+},
+"theparisreview.org": {
+"category": "review_editorial",
+"country": "US",
+"id": "theparisreview",
+"name": "The Paris Review",
+"owner": null,
+"services": [
+"literary"
+],
+"signal": "trade_published",
+"weight": 0.2
+},
+"therumpus.net": {
+"category": "review_editorial",
+"country": "US",
+"id": "therumpus",
+"name": "The Rumpus",
+"owner": null,
+"services": [
+"criticism",
+"literary"
+],
+"signal": "indie_published",
+"weight": 0.35
+},
+"theusreview.com": {
+"category": "review_paid",
+"country": "US",
+"id": "theusreview",
+"name": "US Review of Books",
+"owner": null,
+"services": [
+"reviews"
+],
+"signal": "paid_review",
+"weight": 0.85
+},
+"trafford.com": {
+"category": "publisher_vanity",
+"country": "CA",
+"id": "trafford",
+"name": "Trafford Publishing",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"distribution"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"troubador.co.uk": {
+"category": "selfpub_platform",
+"country": "UK",
+"id": "troubador",
+"name": "Troubador / Matador",
+"owner": null,
+"services": [
+"publishing",
+"distribution"
+],
+"signal": "self_published",
+"weight": 0.8
+},
+"turnerpublishing.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "turnerpublishing",
+"name": "Turner Publishing",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.55
+},
+"twodollarradio.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "twodollarradio",
+"name": "Two Dollar Radio",
+"owner": null,
+"services": [
+"publishing",
+"literary"
+],
+"signal": "indie_published",
+"weight": 0.5
+},
+"westbowpress.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "westbowpress",
+"name": "WestBow Press",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"christian"
+],
+"signal": "vanity_published",
+"weight": 0.9
+},
+"wildboundpr.com": {
+"category": "pr_agency",
+"country": "US",
+"id": "wildboundpr",
+"name": "Wildbound PR",
+"owner": null,
+"services": [
+"pr"
+],
+"signal": "paid_promotion",
+"weight": 0.75
+},
+"wildrosepress.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "wildrosepress",
+"name": "Wild Rose Press",
+"owner": null,
+"services": [
+"publishing",
+"romance"
+],
+"signal": "indie_published",
+"weight": 0.6
+},
+"woodhallpress.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "woodhallpress",
+"name": "Woodhall Press",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "indie_published",
+"weight": 0.6
+},
+"writebk.com": {
+"category": "publisher_indie",
+"country": "US",
+"id": "writebk",
+"name": "WriteBK",
+"owner": null,
+"services": [
+"publishing"
+],
+"signal": "self_published",
+"weight": 0.6
+},
+"writersdigest.com": {
+"category": "education",
+"country": "US",
+"id": "writersdigest",
+"name": "Writer's Digest",
+"owner": null,
+"services": [
+"resources",
+"competitions"
+],
+"signal": "seeking_publication",
+"weight": 0.6
+},
+"writtenwordmedia.com": {
+"category": "promo_service",
+"country": "US",
+"id": "writtenwordmedia",
+"name": "Written Word Media",
+"owner": "Written Word Media",
+"services": [
+"promotion"
+],
+"signal": "paid_promotion",
+"weight": 0.8
+},
+"xlibris.com": {
+"category": "publisher_vanity",
+"country": "US",
+"id": "xlibris",
+"name": "Xlibris",
+"owner": "Author Solutions",
+"services": [
+"publishing",
+"design",
+"marketing"
+],
+"signal": "vanity_published",
+"weight": 0.95
+}
+}
