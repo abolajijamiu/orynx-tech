@@ -15,14 +15,15 @@ const CHANNELS = [
   { key: "instagram", label: "Instagram" },
 ];
 
-const COLUMNS = [
-  "bookName", "author", "website", "company", "category", "country",
-  "contactPage", "email", "linkedin", "instagram", "phone", "whatsapp",
-  "services", "idealPitch", "priority", "tier",
-  "launchDate", "publishDate", "readersCount", "reviewsCount", "ratingsCount",
-  "averageRating", "isbn", "publisher", "price", "pageCount", "language",
-  "format", "coverUrl", "sourceUrl", "extractedBy", "capturedAt",
-];
+// The export shape lives with the extractor so the panel and the popup cannot
+// drift apart; loaded lazily because a popup is not a content script.
+let buildCsv = null;
+async function csvFor(rows) {
+  if (!buildCsv) {
+    ({ toCsv: buildCsv } = await import(chrome.runtime.getURL("src/content/extract.js")));
+  }
+  return buildCsv(rows);
+}
 
 let view = "page";
 let pageRecords = [];
@@ -88,17 +89,6 @@ function render() {
 
 function countWith(rows, field) {
   return rows.filter((row) => Boolean(row[field])).length;
-}
-
-function toCsv(rows) {
-  const escape = (value) => {
-    const text = value === null || value === undefined ? "" : String(value);
-    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  };
-  return "﻿" + [
-    COLUMNS.join(","),
-    ...rows.map((row) => COLUMNS.map((column) => escape(row[column])).join(",")),
-  ].join("\n");
 }
 
 async function activeTab() {
@@ -181,10 +171,10 @@ async function boot() {
     flash("save", response?.ok ? `Saved ${response.added}` : "Failed");
   });
 
-  document.getElementById("export").addEventListener("click", () => {
+  document.getElementById("export").addEventListener("click", async () => {
     const rows = current().filter(matches);
     if (!rows.length) return flash("export", "Nothing to export");
-    const blob = new Blob([toCsv(rows)], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([await csvFor(rows)], { type: "text/csv;charset=utf-8" });
     chrome.downloads.download({
       url: URL.createObjectURL(blob),
       filename: `orynx-leads-${new Date().toISOString().slice(0, 10)}.csv`,

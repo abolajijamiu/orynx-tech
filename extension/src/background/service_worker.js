@@ -19,6 +19,11 @@ const DEFAULTS = {
   // After an author page names the author's own site, visit it too: that is
   // where a published address is most often found, and rarely anywhere else.
   followAuthorWebsite: true,
+  // And, on that site, its contact page — the one place an address is close to
+  // guaranteed when the homepage does not carry one.
+  followContactPage: true,
+  // Run the author stage automatically once the books are done.
+  chainAuthors: true,
 };
 
 // Hosts that are somebody's profile, not an author's own website.
@@ -152,38 +157,94 @@ async function processLink(link, options) {
  * then write what was learned onto every book by that author.
  */
 async function processAuthor(link, options) {
-  const profile = await withTab(link.url, options, async (tabId) => {
+  // A book's author link is sometimes a profile on the site and sometimes the
+  // author's own website. Ask for both, so either shape yields something.
+  const read = await withTab(link.url, options, async (tabId) => {
     const response = await ask(tabId, { type: "orynx:author" });
     if (!response) throw new Error("no response from the author page");
-    return response.profile;
+    const contacts = await ask(tabId, { type: "orynx:contacts" }, 2, 400);
+    return { profile: response.profile, contacts: contacts?.contacts || null };
   });
-  if (!profile) return 0;
+
+  let profile = read.profile;
+  if (!profile) {
+    // Not a profile page. If it carries contact details it is very likely the
+    // author's own site, which is exactly what the next hop would look for.
+    const contacts = read.contacts;
+    const hasSomething =
+      contacts && ((contacts.emails || []).length || Object.keys(contacts.socials || {}).length);
+    if (!hasSomething) return 0;
+    profile = {
+      authorName: link.author || null,
+      authorNameKey: null,
+      authorPageUrl: null,
+      authorBio: null,
+      authorWebsite: link.url,
+      authorEmail: null,
+      authorPhone: null,
+      authorSocials: {},
+    };
+    applyContacts(profile, contacts);
+  }
 
   if (options.followAuthorWebsite && profile.authorWebsite && !profile.authorEmail) {
-    const site = profile.authorWebsite;
-    if (/^https?:\/\//i.test(site) && !NOT_A_PERSONAL_SITE.test(site)) {
-      try {
-        const found = await withTab(site, options, async (tabId) => {
-          const response = await ask(tabId, { type: "orynx:contacts" }, 4, 600);
-          const contacts = response?.contacts;
-          if (!contacts) return null;
-          return {
-            email: (contacts.emails || [])[0]?.value || null,
-            socials: contacts.socials || {},
-          };
-        });
-        if (found?.email) profile.authorEmail = found.email;
-        // Their own site often lists profiles the catalogue page did not.
-        for (const [network, url] of Object.entries(found?.socials || {})) {
-          if (!profile.authorSocials[network]) profile.authorSocials[network] = url;
-        }
-      } catch {
-        // An unreachable personal site is not a failure of the author page.
-      }
-    }
+    await harvestFromSite(profile, profile.authorWebsite, options);
+  }
+  if (!profile.authorEmail && !Object.keys(profile.authorSocials || {}).length && !profile.authorBio) {
+    return 0; // nothing was learned; do not touch the library
   }
 
   return applyProfileToLibrary(profile, link.author);
+}
+
+/** Read one page of the author's own site into the profile. */
+async function readContacts(url, options) {
+  return withTab(url, options, async (tabId) => {
+    const response = await ask(tabId, { type: "orynx:contacts" }, 4, 600);
+    return response?.contacts || null;
+  });
+}
+
+/**
+ * Take what an author's own website offers, following its contact page when the
+ * landing page carries no address — which is the usual case, since sites put
+ * the address one click away rather than on the front.
+ */
+async function harvestFromSite(profile, site, options) {
+  if (!/^https?:\/\//i.test(site) || NOT_A_PERSONAL_SITE.test(site)) return;
+
+  let contacts = null;
+  try {
+    contacts = await readContacts(site, options);
+  } catch {
+    return; // an unreachable personal site is not a failure of the author page
+  }
+  if (!contacts) return;
+
+  applyContacts(profile, contacts);
+
+  if (profile.authorEmail || !options.followContactPage) return;
+  const contactPage = (contacts.contactPages || [])[0]?.url;
+  if (!contactPage || contactPage === site) return;
+  try {
+    const deeper = await readContacts(contactPage, options);
+    if (deeper) applyContacts(profile, deeper);
+  } catch {
+    // The contact page is a best effort; the site's own details still stand.
+  }
+}
+
+function applyContacts(profile, contacts) {
+  if (!profile.authorEmail) {
+    profile.authorEmail = (contacts.emails || [])[0]?.value || null;
+  }
+  if (!profile.authorPhone) {
+    profile.authorPhone = (contacts.phones || [])[0] || (contacts.whatsapp || [])[0] || null;
+  }
+  // A personal site often lists profiles the catalogue page did not.
+  for (const [network, url] of Object.entries(contacts.socials || {})) {
+    if (!profile.authorSocials[network]) profile.authorSocials[network] = url;
+  }
 }
 
 /** Fill gaps on every stored book credited to this author. */
@@ -225,6 +286,7 @@ function applyProfile(record, profile) {
     authorBio: profile.authorBio,
     authorWebsite: profile.authorWebsite,
     email: profile.authorEmail,
+    authorPhone: profile.authorPhone,
     authorPageUrl: profile.authorPageUrl,
     authorBorn: profile.authorBorn,
     authorLocation: profile.authorLocation,
@@ -272,10 +334,49 @@ async function runQueue(links, overrides = {}, mode = "books") {
     if (!queueState.stopRequested) await sleep(options.delayMs);
   }
 
+  if (mode === "books" && options.chainAuthors && !queueState.stopRequested) {
+    const authors = await pendingAuthorLinks();
+    if (authors.length) {
+      const books = { done: queueState.done, saved: queueState.saved, failed: queueState.failed };
+      await runQueue(authors, overrides, "authors");
+      // Report the whole run, not just its second half.
+      queueState.done += books.done;
+      queueState.saved += books.saved;
+      queueState.failed += books.failed;
+      queueState.total += books.done;
+      await publishState();
+      return queueState;
+    }
+  }
+
   queueState.running = false;
   queueState.current = null;
   await publishState();
   return queueState;
+}
+
+/**
+ * Author pages worth visiting: one per author, and only those not already read.
+ * Re-reading an author because they wrote six books would be slower and ruder.
+ */
+async function pendingAuthorLinks() {
+  const stored = (await chrome.storage.local.get(KEY))[KEY] || [];
+  const seen = new Set();
+  const links = [];
+  for (const record of stored) {
+    if (!record.authorUrl || record.authorPageUrl) continue;
+    let url;
+    try {
+      url = new URL(record.authorUrl);
+    } catch {
+      continue;
+    }
+    const clean = url.origin + url.pathname;
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    links.push({ url: clean, title: record.author || clean, author: record.author || null });
+  }
+  return links;
 }
 
 // --------------------------------------------------------------------------- //

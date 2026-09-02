@@ -36,8 +36,11 @@ const server = http.createServer((req, res) => {
     name = slug === "hollow-bones" ? "/detail_book.html" : `/${slug}.html`;
   }
   if (name === "/author/marta-oyelaran") name = "/author_page_local.html";
+  else if (name === "/author/marta-nomail") name = "/author_page_nomail.html";
   else if (name.startsWith("/author/")) name = "/author_page.html";
   if (name === "/site") name = "/author_site.html";
+  if (name === "/nomail") name = "/author_site_nomail.html";
+  if (name === "/contact") name = "/contact_page.html";
   const file = url.startsWith("/ext/")
     ? path.join(EXT, url.slice(5))
     : path.join(PAGES, name);
@@ -366,7 +369,8 @@ console.log("\nQueue: visit each book link and save it");
         type: "orynx:queue:start",
         links: queue,
         // Short waits: the fixtures are local and render immediately.
-        options: { delayMs: 200, settleMs: 300 },
+        // Chaining is exercised separately; this checks the book stage alone.
+        options: { delayMs: 200, settleMs: 300, chainAuthors: false },
       }),
       [links],
     );
@@ -541,6 +545,108 @@ console.log("\nSecond hop: follow the author's own site for an address");
 
     await driver.close();
   }
+}
+
+console.log("\nThird hop: the contact page, when the homepage has no address");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  const driver = await context.newPage();
+  await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+  await driver.evaluate((record) =>
+    chrome.runtime.sendMessage({ type: "orynx:save", records: [record] }),
+    {
+      bookName: "Quiet Tide", author: "Marta Oyelaran", isbn: "9789998887000",
+      authorUrl: `${BASE}/author/marta-nomail`, email: "", authorWebsite: null,
+    },
+  );
+
+  await driver.evaluate((queue) => chrome.runtime.sendMessage({
+    type: "orynx:queue:start", mode: "authors", links: queue,
+    options: { delayMs: 150, settleMs: 250, chainAuthors: false },
+  }), [{ url: `${BASE}/author/marta-nomail`, title: "Marta Oyelaran", author: "Marta Oyelaran" }]);
+
+  let done = false;
+  for (let attempt = 0; attempt < 40 && !done; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const status = await driver.evaluate(() =>
+      chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+    done = Boolean(status?.state && !status.state.running && status.state.done > 0);
+  }
+  check("run finished", done);
+
+  const book = (await driver.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+    return response.records;
+  }))[0] || {};
+  check("email came from the contact page", book.email === "marta@martaoyelaran.example", book.email);
+  check("phone came from the contact page", (book.authorPhone || "").includes("801"), book.authorPhone);
+  check("social found on the way", (book.facebook || "").includes("martaoyelaran"), book.facebook);
+  await driver.close();
+}
+
+console.log("\nChaining: books then authors in one run");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  const driver = await context.newPage();
+  await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+  await driver.evaluate((record) =>
+    chrome.runtime.sendMessage({ type: "orynx:save", records: [record] }),
+    {
+      bookName: "Seed", author: "Marta Oyelaran", isbn: "9789998880000",
+      authorUrl: `${BASE}/author/marta-oyelaran`, email: "",
+    },
+  );
+
+  await driver.evaluate((queue) => chrome.runtime.sendMessage({
+    type: "orynx:queue:start", links: queue,
+    options: { delayMs: 150, settleMs: 250, chainAuthors: true },
+  }), [{ url: `${BASE}/book/tidewater`, title: "Tidewater" }]);
+
+  let state = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const status = await driver.evaluate(() =>
+      chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+    if (status?.state && !status.state.running && status.state.done > 0) {
+      state = status.state;
+      break;
+    }
+  }
+  check("run finished", Boolean(state), JSON.stringify(state));
+  check("the author stage ran without a second click", state?.mode === "authors",
+        JSON.stringify(state));
+
+  const saved = await driver.evaluate(async () =>
+    (await chrome.runtime.sendMessage({ type: "orynx:list" })).records);
+  const seed = saved.find((r) => r.bookName === "Seed") || {};
+  check("the seeded book was enriched by the chained stage",
+        (seed.authorBio || "").includes("historical fiction"), (seed.authorBio || "").slice(0, 40));
+  await driver.close();
+}
+
+console.log("\nCSV shape");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  const driver = await context.newPage();
+  await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  const csv = await driver.evaluate(async () => {
+    const { toCsv, HEADERS } = await import(chrome.runtime.getURL("src/content/extract.js"));
+    const rows = (await chrome.runtime.sendMessage({ type: "orynx:list" })).records;
+    return { text: toCsv(rows), headers: HEADERS };
+  });
+  const header = csv.text.split("\n")[0].replace(/^\ufeff/, "");
+  check("headers are the requested fields", header.startsWith("Book title,Description,Rating,Reviews,Voters,Views"), header.slice(0, 60));
+  check("no leftover scoring columns", !/priority|tier|services|idealPitch/i.test(header), header);
+  check("AI columns last", header.endsWith("found_email,outreach_message"), header.slice(-40));
+  check("column count", csv.headers.length === 31, String(csv.headers.length));
+  await driver.close();
 }
 
 await context.close();

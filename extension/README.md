@@ -123,12 +123,45 @@ community review text, trimmed so a spreadsheet cell stays usable.
 `readersCount` and `viewsCount` stay empty on sites that publish neither, which
 is most of them.
 
+## What one run does
+
+**Visit each book and save** now runs the whole chain without a second click:
+
+```
+listing page
+  └─ each book page      title, description, ratings, reviews, dates, pages,
+     │                   genres, original title, edition, language, editions,
+     │                   statistics, review content
+     └─ the author's page     name, bio, socials, birthplace, genres, own site
+        └─ their own website  address, phone, further profiles
+           └─ its contact page   where the homepage carries no address
+```
+
+One background tab at a time throughout. Each author is visited once however
+many of their books you hold, and an author already read is skipped on a later
+run.
+
+Where a book links straight to the author's own website rather than a profile
+page — common in schema.org markup — that is recognised and harvested for
+contacts instead.
+
+**Social platforms are not opened.** Facebook, Instagram, TikTok, X and LinkedIn
+sit behind login walls with active bot detection; automated access there risks
+the account doing it being suspended, and phone numbers are effectively never
+public on them. Profile URLs are captured wherever a page publishes them, which
+is what an enrichment pass actually needs.
+
 ## The CSV, and the AI pass after it
 
-58 columns, one row per book. Two are deliberately blank: **`found_email`** and
-**`outreach_message`**. They are there for a later pass — hand the CSV to an AI
-with the author's website, socials and bio already in the row, and have it fill
-those two columns in. Everything that pass needs to work from is on the same row.
+31 columns, one row per book, in a fixed order: title, description, rating,
+reviews, voters, views, dates, pages, genres, original title, edition, language,
+more editions, statistics, then the author — name, biography, email, phone,
+website, Facebook, Instagram, TikTok, X, LinkedIn, other profiles — then the
+community review text, then the book and author page URLs.
+
+Two are deliberately blank: **`found_email`** and **`outreach_message`**, for a
+later pass to fill from the rest of the row. The book and author page URLs are
+kept because a row nobody can trace back cannot be checked.
 
 ## Filtering
 

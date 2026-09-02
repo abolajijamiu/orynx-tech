@@ -15,30 +15,67 @@ import { extractDetail } from "../shared/detail.js";
 import { extractAuthorProfile, looksLikeAuthorPage } from "../shared/author.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
-export const COLUMNS = [
-  // Identity
-  "bookName", "originalTitle", "author", "authorUrl", "isbn", "series", "edition",
-  // Where it came from
-  "website", "sourceUrl", "company", "category", "country", "platformSignal",
-  // Reaching the author. found_email and outreach_message are deliberately left
-  // empty: they are the columns an AI pass fills in from the rest of the row.
-  "found_email", "outreach_message",
-  "email", "authorWebsite", "linkedin", "instagram", "twitter", "facebook",
-  "tiktok", "youtube", "substack", "phone", "whatsapp", "contactPage",
-  // Publication
-  "publishDate", "expectedPublication", "firstPublished", "launchDate",
-  "publisher", "pageCount", "language", "format", "genres", "awards",
-  // Reception
-  "averageRating", "ratingsCount", "reviewsCount", "votersCount", "viewsCount",
-  "readersCount", "wantToReadCount", "currentlyReadingCount", "editionsCount",
-  "moreEditionsUrl",
-  // Content for the outreach step
-  "description", "authorBio", "topReviews",
-  "authorPageUrl", "authorBorn", "authorLocation", "authorGenres", "authorBookCount",
-  // Qualification and provenance
-  "services", "idealPitch", "priority", "tier", "coverUrl", "extractedBy",
-  "isDetailPage", "capturedAt",
+/**
+ * The export, as a header and the field behind it.
+ *
+ * Deliberately narrow: these are the columns asked for, in the order asked for,
+ * rather than every field the extractor happens to hold. `sourceUrl` and
+ * `authorPageUrl` are kept because a row nobody can trace back cannot be
+ * checked or defended, and `found_email` and `outreach_message` are left empty
+ * for a later AI pass to fill from the rest of the row.
+ */
+export const EXPORT_COLUMNS = [
+  ["Book title", "bookName"],
+  ["Description", "description"],
+  ["Rating", "averageRating"],
+  ["Reviews", "reviewsCount"],
+  ["Voters", "votersCount"],
+  ["Views", "viewsCount"],
+  ["Date published", "publishDate"],
+  ["Expected publication", "expectedPublication"],
+  ["Pages", "pageCount"],
+  ["Genres", "genres"],
+  ["Original title", "originalTitle"],
+  ["Edition", "edition"],
+  ["Language", "language"],
+  ["More editions", "moreEditionsUrl"],
+  ["Book statistics", "bookStatistics"],
+  ["Author name", "author"],
+  ["About the author", "authorBio"],
+  ["Author email", "email"],
+  ["Author phone", "authorPhone"],
+  ["Author website", "authorWebsite"],
+  ["Facebook", "facebook"],
+  ["Instagram", "instagram"],
+  ["TikTok", "tiktok"],
+  ["Twitter/X", "twitter"],
+  ["LinkedIn", "linkedin"],
+  ["Other socials", "otherSocials"],
+  ["Community reviews", "topReviews"],
+  ["Book page", "sourceUrl"],
+  ["Author page", "authorPageUrl"],
+  ["found_email", "found_email"],
+  ["outreach_message", "outreach_message"],
 ];
+
+export const COLUMNS = EXPORT_COLUMNS.map(([, field]) => field);
+export const HEADERS = EXPORT_COLUMNS.map(([header]) => header);
+
+/** One CSV row, in export order. */
+export function toRow(record) {
+  return COLUMNS.map((field) => {
+    const value = record[field];
+    return value === null || value === undefined ? "" : String(value);
+  });
+}
+
+export function toCsv(records) {
+  const escape = (value) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+  const lines = [HEADERS.map(escape).join(",")];
+  for (const record of records) lines.push(toRow(record).map(escape).join(","));
+  // A BOM so Excel opens UTF-8 correctly.
+  return "\ufeff" + lines.join("\n");
+}
 
 function mergeBooks(candidates) {
   // Later extractors only fill gaps; the earlier, more reliable one wins.
@@ -194,6 +231,26 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       signal: classification.signal,
       capturedAt,
     };
+
+    // "Book statistics" gathers the counts a page publishes about itself into one
+    // readable cell, since they are individually sparse and jointly meaningful.
+    record.bookStatistics = [
+      stats.wantToReadCount ? `${stats.wantToReadCount} want to read` : null,
+      stats.currentlyReadingCount ? `${stats.currentlyReadingCount} currently reading` : null,
+      stats.editionsCount ? `${stats.editionsCount} editions` : null,
+      record.ratingsCount ? `${record.ratingsCount} ratings` : null,
+    ].filter(Boolean).join(" · ") || null;
+    // Voters are the people who rated it, as distinct from those who wrote a review.
+    record.votersCount = stats.votersCount ?? record.ratingsCount ?? null;
+    record.otherSocials = [
+      authorSocials.youtube || null,
+      authorSocials.substack || null,
+      authorSocials.threads || null,
+      authorSocials.bluesky || null,
+      authorSocials.patreon || null,
+      authorSocials.goodreads || null,
+    ].filter(Boolean).join(" ; ") || null;
+    record.authorPhone = record.authorPhone || null;
 
     const scored = scoreLead(record, classification);
     record.priority = scored.score;

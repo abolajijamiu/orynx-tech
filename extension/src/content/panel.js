@@ -6,7 +6,7 @@
  * whether the records carry a usable contact route.
  */
 
-import { COLUMNS, collectAuthorLinks, collectBookLinks, diagnosePage, extractAuthor, extractPage, matchesFilter } from "./extract.js";
+import { collectAuthorLinks, collectBookLinks, diagnosePage, extractAuthor, extractPage, matchesFilter, toCsv } from "./extract.js";
 import { extractContacts } from "../shared/contacts.js";
 
 const CHANNELS = [
@@ -94,16 +94,6 @@ function selected() {
   const shown = visible();
   const boxes = [...root.querySelectorAll(".orynx-item input")];
   return boxes.filter((b) => b.checked).map((b) => shown[Number(b.dataset.index)]).filter(Boolean);
-}
-
-function toCsv(rows) {
-  const escape = (value) => {
-    const text = value === null || value === undefined ? "" : String(value);
-    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  };
-  const header = COLUMNS.join(",");
-  const body = rows.map((row) => COLUMNS.map((column) => escape(row[column])).join(","));
-  return "﻿" + [header, ...body].join("\n");
 }
 
 function download(rows) {
@@ -222,9 +212,10 @@ function buildUi() {
       return;
     }
     const proceed = confirm(
-      `Visit ${links.length} book page(s) one at a time and save what each one has?\n\n` +
-      "Each opens in a background tab, is read, saved and closed, with a pause " +
-      "between. You can stop at any point.",
+      `Visit ${links.length} book page(s), then each author, and save everything?\n\n` +
+      "One background tab at a time: the book page, then the author's page, then " +
+      "their own website and its contact page. Each opens, is read, saved and " +
+      "closed, with a pause between. You can stop at any point.",
     );
     if (!proceed) return;
     await chrome.runtime.sendMessage({ type: "orynx:queue:start", links });
