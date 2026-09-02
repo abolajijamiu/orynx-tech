@@ -1,4 +1,11 @@
-/** The saved-lead library: filter by contact channel, then export. */
+/**
+ * Two views: what is on the page in front of you, and what you have saved.
+ *
+ * "This page" is the default, because someone opening the extension while
+ * looking at a catalogue wants to see that catalogue — not an empty library.
+ * Showing only saved leads made Rescan appear to do nothing, since its effect
+ * was visible on the page badge and nowhere here.
+ */
 
 const CHANNELS = [
   { key: "email", label: "Email" },
@@ -17,9 +24,13 @@ const COLUMNS = [
   "format", "coverUrl", "sourceUrl", "extractedBy", "capturedAt",
 ];
 
-let records = [];
+let view = "page";
+let pageRecords = [];
+let savedRecords = [];
 let active = new Set();
 let requireAll = false;
+
+const current = () => (view === "page" ? pageRecords : savedRecords);
 
 function matches(record) {
   const query = document.getElementById("q").value.trim().toLowerCase();
@@ -35,19 +46,36 @@ function matches(record) {
   return true;
 }
 
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 function render() {
-  const shown = records.filter(matches);
+  const rows = current();
+  const shown = rows.filter(matches);
+
   document.getElementById("summary").textContent =
-    `${records.length} saved · ${shown.length} shown · ${countWith(records, "email")} with email, ` +
-    `${countWith(records, "whatsapp")} with WhatsApp`;
+    view === "page"
+      ? `${rows.length} on this page · ${shown.length} shown · ${countWith(rows, "email")} with email`
+      : `${rows.length} saved · ${shown.length} shown · ${countWith(rows, "email")} with email, ` +
+        `${countWith(rows, "whatsapp")} with WhatsApp`;
+
+  document.getElementById("save").style.display = view === "page" ? "" : "none";
+  document.getElementById("clear").style.display = view === "saved" ? "" : "none";
 
   const list = document.getElementById("list");
   if (!shown.length) {
     list.innerHTML = `<div class="empty">${
-      records.length ? "Nothing matches this filter." : "No saved leads yet.<br>Open a book page and press Save."
+      rows.length
+        ? "Nothing matches this filter."
+        : view === "page"
+          ? "No books found on this page.<br>Try Rescan, or a book listing page."
+          : "No saved leads yet.<br>Open a book page and press Save."
     }</div>`;
     return;
   }
+
   list.innerHTML = shown.map((record) => {
     const channels = CHANNELS.filter((c) => record[c.key]).map((c) => c.label).join(", ");
     return `<div class="row">
@@ -62,11 +90,6 @@ function countWith(rows, field) {
   return rows.filter((row) => Boolean(row[field])).length;
 }
 
-function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
 function toCsv(rows) {
   const escape = (value) => {
     const text = value === null || value === undefined ? "" : String(value);
@@ -78,10 +101,43 @@ function toCsv(rows) {
   ].join("\n");
 }
 
+async function activeTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab;
+}
+
+async function loadPageRecords(rescan = false) {
+  const tab = await activeTab();
+  if (!tab?.id) return [];
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      type: rescan ? "orynx:rescan" : "orynx:records",
+    });
+    return response?.records || [];
+  } catch {
+    // No content script here: a chrome:// page, the web store, or a tab opened
+    // before the extension was installed.
+    return [];
+  }
+}
+
+async function loadSaved() {
+  const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+  return response?.records || [];
+}
+
+function flash(id, text) {
+  const button = document.getElementById(id);
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => { button.textContent = original; }, 2000);
+}
+
 async function boot() {
   const chips = document.getElementById("chips");
-  chips.innerHTML = CHANNELS.map((c) => `<button class="chip" data-k="${c.key}">${c.label}</button>`).join("")
-    + `<button class="chip" data-all="1">match all</button>`;
+  chips.innerHTML =
+    CHANNELS.map((c) => `<button class="chip" data-k="${c.key}">${c.label}</button>`).join("") +
+    `<button class="chip" data-all="1">match all</button>`;
 
   chips.addEventListener("click", (event) => {
     const button = event.target.closest(".chip");
@@ -96,30 +152,58 @@ async function boot() {
     render();
   });
 
+  document.querySelector(".tabs").addEventListener("click", async (event) => {
+    const tab = event.target.closest(".tab");
+    if (!tab) return;
+    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t === tab));
+    view = tab.dataset.view;
+    if (view === "saved") savedRecords = await loadSaved();
+    render();
+  });
+
   document.getElementById("q").addEventListener("input", render);
 
+  document.getElementById("rescan").addEventListener("click", async () => {
+    pageRecords = await loadPageRecords(true);
+    if (view !== "page") {
+      view = "page";
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.view === "page"));
+    }
+    render();
+    flash("rescan", `Found ${pageRecords.length}`);
+  });
+
+  document.getElementById("save").addEventListener("click", async () => {
+    const rows = pageRecords.filter(matches);
+    if (!rows.length) return flash("save", "Nothing to save");
+    const response = await chrome.runtime.sendMessage({ type: "orynx:save", records: rows });
+    savedRecords = await loadSaved();
+    flash("save", response?.ok ? `Saved ${response.added}` : "Failed");
+  });
+
   document.getElementById("export").addEventListener("click", () => {
-    const blob = new Blob([toCsv(records.filter(matches))], { type: "text/csv;charset=utf-8" });
+    const rows = current().filter(matches);
+    if (!rows.length) return flash("export", "Nothing to export");
+    const blob = new Blob([toCsv(rows)], { type: "text/csv;charset=utf-8" });
     chrome.downloads.download({
       url: URL.createObjectURL(blob),
       filename: `orynx-leads-${new Date().toISOString().slice(0, 10)}.csv`,
     });
   });
 
-  document.getElementById("rescan").addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) await chrome.tabs.sendMessage(tab.id, { type: "orynx:rescan" });
-  });
-
   document.getElementById("clear").addEventListener("click", async () => {
     if (!confirm("Delete every saved lead? This cannot be undone.")) return;
     await chrome.runtime.sendMessage({ type: "orynx:clear" });
-    records = [];
+    savedRecords = [];
     render();
   });
 
-  const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
-  records = response?.records || [];
+  [pageRecords, savedRecords] = await Promise.all([loadPageRecords(), loadSaved()]);
+  // Land on whichever view actually has something in it.
+  if (!pageRecords.length && savedRecords.length) {
+    view = "saved";
+    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.view === "saved"));
+  }
   render();
 }
 

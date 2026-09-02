@@ -225,7 +225,11 @@ export async function init() {
 
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message?.type === "orynx:rescan") {
-      respond({ ok: true, count: rescan() });
+      rescan();
+      respond({ ok: true, count: records.length, records });
+    }
+    if (message?.type === "orynx:records") {
+      respond({ ok: true, count: records.length, records });
     }
     return true;
   });

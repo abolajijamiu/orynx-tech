@@ -3,6 +3,10 @@ body { margin: 0; width: 420px; font: 13px ui-sans-serif, system-ui, -apple-syst
 h1 { font-size: 14px; margin: 0; }
 p { margin: 3px 0 0; font-size: 11px; color: #6b7280; }
 header { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; }
+.tabs { display: flex; border-bottom: 1px solid #e5e7eb; }
+.tab { flex: 1; padding: 8px; font-size: 12px; font-weight: 600; background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer; color: #6b7280; border-radius: 0; }
+.tab.on { color: inherit; border-bottom-color: #111827; }
 .filters { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px; }
 #q { width: 100%; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; background: #fff; color: inherit; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -22,7 +26,8 @@ button.primary { background: #111827; color: #fff; border-color: #111827; }
 button.danger { flex: 0 0 auto; padding: 8px 12px; color: #991b1b; }
 @media (prefers-color-scheme: dark) {
   body { background: #111827; color: #f3f4f6; }
-  header, .filters, footer, .row { border-color: #374151; }
+  header, .filters, footer, .row, .tabs { border-color: #374151; }
+  .tab.on { border-bottom-color: #34d399; }
   #q, .chip, button { background: #1f2937; border-color: #374151; }
   .chip.on, button.primary { background: #34d399; color: #052e1a; border-color: #34d399; }
 }

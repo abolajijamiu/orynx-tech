@@ -36,8 +36,13 @@ page with partial JSON-LD still gains a review count found only in the DOM:
    publish this for search engines. Best quality, no configuration.
 2. **Microdata** — `itemtype="…/Book"` subtrees.
 3. **Meta tags** — Open Graph `book:*`, Dublin Core, `citation_*`.
-4. **DOM heuristics** — last resort, deliberately conservative. A heading alone
-   is never a book; a candidate needs a byline, an ISBN or a price alongside it.
+4. **DOM heuristics** — last resort, and context-aware. On a page identified as
+   a book platform, or simply shaped like a book catalogue, a cover plus an
+   author-shaped line is evidence enough. Elsewhere hard evidence is required,
+   so a consultancy's team page does not become a shelf of books.
+
+Cover-only grids are handled too: where the title is drawn into the artwork and
+the card holds no readable text, it is read from the image's `alt`.
 
 Every field records which strategy produced it, in `extractedBy`.
 
@@ -62,6 +67,17 @@ page served from a staging host or CDN still recognises its own addresses.
 
 Nothing is guessed. No address patterns are invented and no mail servers are
 probed — everything comes from what the page publishes about itself.
+
+## The two views
+
+The badge and panel on the page show **this page**. The toolbar popup has two
+tabs: **This page** (live, with a Save button) and **Saved** (everything kept
+across sites). It opens on whichever has something in it.
+
+Rescan re-runs extraction and reports the count. Cover-only grids and
+late-rendering catalogues both need it occasionally; the panel also rescans by
+itself for about a minute after load, since most shop front-ends render their
+grid after the page appears.
 
 ## Filtering
 

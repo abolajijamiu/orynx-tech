@@ -150,6 +150,22 @@ console.log("\nPublisher shop listing (the Pegasus case: cover + title + bare au
   check("cover url captured", Boolean(ghost.coverUrl), ghost.coverUrl);
 }
 
+console.log("\nCover-only grid (the Goodreads case: title lives in the image alt)");
+{
+  const records = await extractOn(page, "cover_grid.html");
+  const titles = records.map((r) => r.bookName);
+  check("every cover tile becomes its own book", records.length === 6,
+        `${records.length}: ${titles.join(" | ")}`);
+  check("title read from alt text", titles.includes("Hollow Bones"), titles.join(" | "));
+  check("parenthetical kept", titles.includes("The Pirate Queen (a novel)"), titles.join(" | "));
+  check("'book cover' suffix stripped", titles.includes("American Hagwon"), titles.join(" | "));
+  check("visible title beats alt text", titles.includes("Grim Tidings"), titles.join(" | "));
+  const grim = records.find((r) => r.bookName === "Grim Tidings") || {};
+  check("author still read where present", grim.author === "B. K. Borison", grim.author);
+  check("decorative images rejected", !titles.some((t) => /image|logo/i.test(t)),
+        titles.join(" | "));
+}
+
 console.log("\nUnknown site must not get the relaxed threshold");
 {
   const records = await extractOn(page, "generic_page.html");
@@ -218,6 +234,36 @@ console.log("\nPanel UI (extension loaded)");
     await page.click("#orynx-badge");
     await page.click('.orynx-chip[data-channel="email"]');
     check("email filter hides rows with no email", (await page.textContent("#orynx-count")) === "0");
+  }
+}
+
+console.log("\nPopup");
+{
+  // The extension id comes from the service worker registered on load.
+  const worker = context.serviceWorkers()[0]
+    || await context.waitForEvent("serviceworker", { timeout: 10000 }).catch(() => null);
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  check("service worker registered", Boolean(extensionId), extensionId || "none");
+
+  if (extensionId) {
+    const popup = await context.newPage();
+    const errors = [];
+    popup.on("pageerror", (error) => errors.push(error.message));
+    await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+    await popup.waitForSelector(".tab", { timeout: 8000 });
+    check("popup loads without script errors", errors.length === 0, errors.join("; "));
+    check("defaults to the This page view",
+          await popup.getAttribute('.tab[data-view="page"]', "class") === "tab on");
+    check("has a Saved view", await popup.isVisible('.tab[data-view="saved"]'));
+    check("Save button present on the page view", await popup.isVisible("#save"));
+    check("summary rendered",
+          !(await popup.textContent("#summary")).includes("Loading"),
+          await popup.textContent("#summary"));
+    await popup.click("#rescan");
+    check("rescan reports a count rather than doing nothing",
+          /Found \d+/.test(await popup.textContent("#rescan")),
+          await popup.textContent("#rescan"));
+    await popup.close();
   }
 }
 

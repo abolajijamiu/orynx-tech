@@ -137,6 +137,37 @@ export function findAuthor(node, options = {}) {
   return null;
 }
 
+// Alt text that describes the image rather than naming the book.
+const GENERIC_ALT =
+  /^(image|photo|picture|cover|book cover|thumbnail|thumb|logo|icon|avatar|banner|placeholder|img)$/i;
+// Suffixes sites append to an otherwise usable alt: "Hollow Bones book cover".
+const ALT_SUFFIX = /\s*[-–—|:]?\s*(?:book\s*)?cover(?:\s*image)?$/i;
+
+/**
+ * The title as an image alt or link title attribute.
+ *
+ * Cover-only grids — Goodreads, most retailers — render the title inside the
+ * artwork, so the card carries no readable text at all. The alt attribute is
+ * where the title actually lives on those pages.
+ */
+function titleFromMedia(node) {
+  for (const image of node.querySelectorAll("img[alt]")) {
+    const raw = cleanText(image.getAttribute("alt"));
+    if (!raw || GENERIC_ALT.test(raw)) continue;
+    const title = raw.replace(ALT_SUFFIX, "").trim();
+    if (title.length >= 2 && title.length <= 200 && !NAV_WORDS.has(title.toLowerCase())) {
+      return title;
+    }
+  }
+  for (const link of node.querySelectorAll("a[title]")) {
+    const title = cleanText(link.getAttribute("title"));
+    if (title && title.length >= 2 && title.length <= 200 && !NAV_WORDS.has(title.toLowerCase())) {
+      return title;
+    }
+  }
+  return null;
+}
+
 /** Headings, title classes and link text: the reliable places a title lives. */
 function findTitleStrong(node) {
   for (const selector of ["h1", "h2", "h3", "h4", ".title", "[class*='title']", "a"]) {
@@ -195,9 +226,11 @@ function fallbackTitleAndAuthor(node, link, bookContext) {
 }
 
 function bookLinkIn(node) {
+  // The node itself is the link on cover-only tiles, where querySelectorAll —
+  // which searches descendants only — would find nothing.
+  if (node.tagName === "A" && node.getAttribute("href")) return node;
   for (const link of node.querySelectorAll("a[href]")) {
-    const href = link.getAttribute("href") || "";
-    if (BOOK_LINK_RE.test(href)) return link;
+    if (BOOK_LINK_RE.test(link.getAttribute("href") || "")) return link;
   }
   return node.querySelector("a[href]");
 }
@@ -210,8 +243,10 @@ function bookLinkIn(node) {
  * author-shaped line is enough; when it is not, hard evidence is required.
  */
 export function bookFromNode(node, pageUrl, bookContext = false) {
+  // Not "no text means no book": a cover tile carries its title in the image
+  // alt and no readable text at all. Only an implausibly large node is rejected.
   const text = textOf(node);
-  if (!text || text.length > 4000) return null;
+  if (text.length > 4000) return null;
 
   const link = bookLinkIn(node);
   const strongTitle = findTitleStrong(node);
@@ -228,6 +263,8 @@ export function bookFromNode(node, pageUrl, bookContext = false) {
     title = fallback.title;
     if (!author) author = fallback.author;
   }
+  // Last resort: the cover's alt text, for grids that render the title as art.
+  if (!title) title = titleFromMedia(node);
   if (!title) return null;
 
   const isbnMatch = text.match(ISBN_RE);
@@ -285,9 +322,15 @@ export function bookFromNode(node, pageUrl, bookContext = false) {
 
 /** Cards found by class name. */
 function cardsBySelector(doc) {
-  const nodes = [...doc.querySelectorAll(CARD_SELECTORS.join(","))];
-  // Drop containers that merely wrap other candidates; the inner one wins.
-  return nodes.filter((node) => !node.querySelector(CARD_SELECTORS.join(",")));
+  const selector = CARD_SELECTORS.join(",");
+  const nodes = [...doc.querySelectorAll(selector)];
+  // Drop a container only when it wraps something that is itself card-shaped,
+  // which means holding a cover. Titles routinely match the selector and wrap a
+  // link — "<h3 class='product-title'><a>…</a></h3>" — and letting that displace
+  // its parent loses the card holding the author.
+  return nodes.filter((node) =>
+    ![...node.querySelectorAll(selector)].some((child) => child.querySelector("img")),
+  );
 }
 
 /**
@@ -298,6 +341,17 @@ function cardsByLink(doc) {
   const found = new Set();
   for (const link of doc.querySelectorAll("a[href]")) {
     if (!BOOK_LINK_RE.test(link.getAttribute("href") || "")) continue;
+    // A link wrapping its own cover is the card only when nothing around it adds
+    // text — the pure cover grid, where walking up would swallow the whole row
+    // and collapse many books into one. Where the container also holds a title
+    // and author, that container is the card and we walk up to it as usual.
+    if (link.querySelector("img")) {
+      const parent = link.parentElement;
+      if (!parent || readableText(parent).length < 3) {
+        found.add(link);
+        continue;
+      }
+    }
     let node = link;
     for (let depth = 0; depth < 4 && node.parentElement; depth += 1) {
       node = node.parentElement;
@@ -311,33 +365,38 @@ function cardsByLink(doc) {
 
 export function extractHeuristicBooks(doc = document, pageUrl = "", options = {}) {
   const { limit = 200, bookContext = false } = options;
-  const seen = new Set();
-  const books = [];
+  // Keyed on title alone: the same book is often reached twice, once through its
+  // card and once through the link inside it, and only one of those carries the
+  // author. Keying on title plus author would keep both as separate books.
+  const byTitle = new Map();
 
-  const candidates = cardsBySelector(doc);
   const collect = (nodes) => {
     for (const node of nodes) {
       const book = bookFromNode(node, pageUrl, bookContext);
       if (!book) continue;
-      const key = `${book.title.toLowerCase()}|${book.authors[0]?.name?.toLowerCase() || ""}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      books.push(book);
-      if (books.length >= limit) return true;
+      const key = normalizeTitle(book.title);
+      const existing = byTitle.get(key);
+      if (existing) {
+        // Keep whichever sighting knows more about the book.
+        if (!existing.authors.length && book.authors.length) byTitle.set(key, book);
+        continue;
+      }
+      byTitle.set(key, book);
+      if (byTitle.size >= limit) return true;
     }
     return false;
   };
 
-  if (collect(candidates)) return books;
+  if (collect(cardsBySelector(doc))) return [...byTitle.values()];
   // Structural discovery adds the cards class names missed.
   collect(cardsByLink(doc));
 
   // A detail page often has no card at all; read the page itself as one record.
-  if (books.length === 0 && doc.body) {
+  if (byTitle.size === 0 && doc.body) {
     const single = bookFromNode(doc.body, pageUrl, bookContext);
-    if (single) books.push(single);
+    if (single) return [single];
   }
-  return books;
+  return [...byTitle.values()];
 }
 
 /** Why nothing was found — used by the panel's diagnostics. */
