@@ -28,9 +28,15 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "applica
 // import the modules without cross-origin restrictions.
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);
+  let name = url === "/" ? "index.html" : url;
+  // Book detail links resolve to flat fixture files: /book/hollow-bones -> detail_book.html
+  if (name.startsWith("/book/")) {
+    const slug = name.slice(6).replace(/\/$/, "");
+    name = slug === "hollow-bones" ? "/detail_book.html" : `/${slug}.html`;
+  }
   const file = url.startsWith("/ext/")
     ? path.join(EXT, url.slice(5))
-    : path.join(PAGES, url === "/" ? "index.html" : url);
+    : path.join(PAGES, name);
   if (!file.startsWith(EXT) && !file.startsWith(PAGES)) { res.writeHead(403).end(); return; }
   fs.readFile(file, (error, body) => {
     if (error) { res.writeHead(404).end("not found"); return; }
@@ -166,6 +172,17 @@ console.log("\nCover-only grid (the Goodreads case: title lives in the image alt
         titles.join(" | "));
 }
 
+console.log("\nGenre rows must not become books");
+{
+  const records = await extractOn(page, "genre_rows.html");
+  const titles = records.map((r) => r.bookName);
+  check("genre labels are not books",
+        !titles.some((t) => /^(fiction|historical fiction)$/i.test(t)), titles.join(" | "));
+  check("the covers inside each row are", records.length === 5,
+        `${records.length}: ${titles.join(" | ")}`);
+  check("titles come from the covers", titles.includes("Hollow Bones"), titles.join(" | "));
+}
+
 console.log("\nUnknown site must not get the relaxed threshold");
 {
   const records = await extractOn(page, "generic_page.html");
@@ -237,6 +254,57 @@ console.log("\nPanel UI (extension loaded)");
   }
 }
 
+console.log("\nBook detail page (deep extraction)");
+{
+  const records = await extractOn(page, "detail_book.html");
+  check("one book on a detail page", records.length === 1, `got ${records.length}`);
+  const r = records[0] || {};
+  check("title", r.bookName === "Hollow Bones", r.bookName);
+  check("marked as a detail page", r.isDetailPage === true, String(r.isDetailPage));
+  check("original title from a labelled field", r.originalTitle === "Ndụ na Ụlọ", r.originalTitle);
+  check("edition", (r.edition || "").includes("First edition"), r.edition);
+  check("series", (r.series || "").includes("Harbour Cycle"), r.series);
+  check("awards", (r.awards || "").includes("Caine"), r.awards);
+  check("expected publication", (r.expectedPublication || "").includes("2026"), r.expectedPublication);
+  check("genres", (r.genres || "").includes("Literary Fiction"), r.genres);
+  check("pages", r.pageCount === 312, String(r.pageCount));
+  check("ratings count", r.ratingsCount === 1284, String(r.ratingsCount));
+  check("reviews count", r.reviewsCount === 213, String(r.reviewsCount));
+  check("views count", r.viewsCount === 4902, String(r.viewsCount));
+  check("want-to-read count", r.wantToReadCount === 8110, String(r.wantToReadCount));
+  check("currently reading", r.currentlyReadingCount === 512, String(r.currentlyReadingCount));
+  check("editions count", r.editionsCount === 7, String(r.editionsCount));
+  check("more editions link", (r.moreEditionsUrl || "").includes("editions"), r.moreEditionsUrl);
+  check("author bio", (r.authorBio || "").includes("Nigerian novelist"), (r.authorBio || "").slice(0, 40));
+  check("author website, not a social host", r.authorWebsite === "https://amaranwosu.example", r.authorWebsite);
+  check("author email", r.email === "hello@amaranwosu.example", r.email);
+  check("instagram", (r.instagram || "").includes("amara.writes"), r.instagram);
+  check("tiktok", (r.tiktok || "").includes("amarawrites"), r.tiktok);
+  check("linkedin", (r.linkedin || "").includes("amara-nwosu"), r.linkedin);
+  check("review text captured", (r.topReviews || "").includes("devastating"), (r.topReviews || "").slice(0, 40));
+  check("review rating kept", (r.topReviews || "").includes("[5/5]"), (r.topReviews || "").slice(0, 20));
+  check("AI columns present and empty", r.found_email === "" && r.outreach_message === "");
+}
+
+console.log("\nLink collection for the queue");
+{
+  await page.goto(`${BASE}/crawl_listing.html`, { waitUntil: "domcontentloaded" });
+  await page.addScriptTag({
+    type: "module",
+    content: `
+      import { collectBookLinks } from "${BASE}/ext/src/content/extract.js";
+      window.__links = collectBookLinks(document, location.href);
+      window.__ready2 = true;`,
+  });
+  await page.waitForFunction(() => window.__ready2 === true, null, { timeout: 10000 });
+  const links = await page.evaluate(() => window.__links);
+  check("collects the book links", links.length === 2, JSON.stringify(links.map((l) => l.url)));
+  check("off-site links excluded",
+        !links.some((l) => /amazon|goodreads/.test(l.url)), JSON.stringify(links));
+  check("titles carried with the links",
+        links.some((l) => l.title === "Hollow Bones"), JSON.stringify(links.map((l) => l.title)));
+}
+
 console.log("\nPopup");
 {
   // The extension id comes from the service worker registered on load.
@@ -264,6 +332,72 @@ console.log("\nPopup");
           /Found \d+/.test(await popup.textContent("#rescan")),
           await popup.textContent("#rescan"));
     await popup.close();
+  }
+}
+
+console.log("\nQueue: visit each book link and save it");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  if (!extensionId) {
+    check("service worker available for the queue run", false);
+  } else {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+
+    // Clear the library so counts below are unambiguous.
+    await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+    const links = [
+      { url: `${BASE}/book/hollow-bones`, title: "Hollow Bones" },
+      { url: `${BASE}/book/tidewater`, title: "Tidewater" },
+    ];
+    const started = await driver.evaluate(
+      ([queue]) => chrome.runtime.sendMessage({
+        type: "orynx:queue:start",
+        links: queue,
+        // Short waits: the fixtures are local and render immediately.
+        options: { delayMs: 200, settleMs: 300 },
+      }),
+      [links],
+    );
+    check("queue accepted the run", started?.ok === true && started.total === 2,
+          JSON.stringify(started));
+
+    // Polled from Node rather than with waitForFunction: this page is backgrounded
+    // while the queue opens its tabs, and requestAnimationFrame — which
+    // waitForFunction polls on — does not fire in a background tab.
+    let finished = null;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const status = await driver.evaluate(() =>
+        chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+      if (status?.state && !status.state.running && status.state.done > 0) {
+        finished = status.state;
+        break;
+      }
+    }
+
+    check("queue completed both pages", finished?.done === 2, JSON.stringify(finished));
+    check("nothing failed", finished?.failed === 0, JSON.stringify(finished?.errors || []));
+
+    const saved = await driver.evaluate(async () => {
+      const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+      return response.records;
+    });
+    check("both books saved to the library", saved.length === 2,
+          saved.map((r) => r.bookName).join(" | "));
+
+    const hollow = saved.find((r) => r.bookName === "Hollow Bones") || {};
+    check("detail data saved, not just the title", hollow.originalTitle === "Ndụ na Ụlọ",
+          hollow.originalTitle);
+    check("author email saved", hollow.email === "hello@amaranwosu.example", hollow.email);
+    check("socials saved", Boolean(hollow.tiktok && hollow.linkedin), `${hollow.tiktok} / ${hollow.linkedin}`);
+    check("review content saved", (hollow.topReviews || "").length > 40);
+    check("background tabs were closed", (await context.pages()).length <= 3,
+          String((await context.pages()).length));
+
+    await driver.close();
   }
 }
 

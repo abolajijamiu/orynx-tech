@@ -11,15 +11,31 @@ import { extractJsonLdBooks } from "../shared/jsonld.js";
 import { extractMetaBook, extractMicrodataBooks } from "../shared/meta.js";
 import { classifyPage, loadRegistry, pitchFor, scoreLead } from "../shared/classify.js";
 import { extractContacts, siteDomain } from "../shared/contacts.js";
+import { extractDetail } from "../shared/detail.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
 export const COLUMNS = [
-  "bookName", "author", "website", "company", "category", "country",
-  "contactPage", "email", "linkedin", "instagram", "phone", "whatsapp",
-  "services", "idealPitch", "priority", "tier",
-  "launchDate", "publishDate", "readersCount", "reviewsCount", "ratingsCount",
-  "averageRating", "isbn", "publisher", "price", "pageCount", "language",
-  "format", "coverUrl", "sourceUrl", "extractedBy", "capturedAt",
+  // Identity
+  "bookName", "originalTitle", "author", "authorUrl", "isbn", "series", "edition",
+  // Where it came from
+  "website", "sourceUrl", "company", "category", "country", "platformSignal",
+  // Reaching the author. found_email and outreach_message are deliberately left
+  // empty: they are the columns an AI pass fills in from the rest of the row.
+  "found_email", "outreach_message",
+  "email", "authorWebsite", "linkedin", "instagram", "twitter", "facebook",
+  "tiktok", "youtube", "substack", "phone", "whatsapp", "contactPage",
+  // Publication
+  "publishDate", "expectedPublication", "firstPublished", "launchDate",
+  "publisher", "pageCount", "language", "format", "genres", "awards",
+  // Reception
+  "averageRating", "ratingsCount", "reviewsCount", "votersCount", "viewsCount",
+  "readersCount", "wantToReadCount", "currentlyReadingCount", "editionsCount",
+  "moreEditionsUrl",
+  // Content for the outreach step
+  "description", "authorBio", "topReviews",
+  // Qualification and provenance
+  "services", "idealPitch", "priority", "tier", "coverUrl", "extractedBy",
+  "isDetailPage", "capturedAt",
 ];
 
 function mergeBooks(candidates) {
@@ -84,6 +100,10 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
 
   const merged = mergeBooks(candidates);
   const contacts = extractContacts(doc, pageUrl);
+  // Deep extraction only makes sense where the page is about a single book;
+  // on a listing, labelled fields and review blocks belong to no one record.
+  const isDetailPage = merged.length === 1;
+  const detail = isDetailPage ? extractDetail(doc, pageUrl) : null;
   const company = siteName(doc, classification);
   const capturedAt = new Date().toISOString();
 
@@ -97,42 +117,76 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
     let isbn = book.isbn;
     if (isbn && isbn.length === 10) isbn = isbn10To13(isbn) || isbn;
 
+    const stats = detail?.statistics || {};
+    const authorSocials = detail?.authorSocials || {};
     const record = {
       bookName: book.title,
+      originalTitle: detail?.originalTitle || null,
       author: (book.authors || []).map((a) => a.name).filter(Boolean).join("; "),
-      authorUrls: (book.authors || []).map((a) => a.url).filter(Boolean),
+      authorUrl: (book.authors || []).map((a) => a.url).filter(Boolean)[0] || null,
+      series: detail?.series || null,
+      edition: detail?.edition || null,
+      awards: detail?.awards || null,
       website: pageUrl,
       company,
       category: classification.category,
       country,
       contactPage,
-      email: primaryEmail,
+      email: (detail?.authorEmails || [])[0] || primaryEmail,
       allEmails: contacts.emails.map((e) => e.value),
-      linkedin: contacts.socials.linkedin || null,
-      instagram: contacts.socials.instagram || null,
-      twitter: contacts.socials.twitter || null,
-      facebook: contacts.socials.facebook || null,
+      // An author's own profile outranks the site's footer links.
+      linkedin: authorSocials.linkedin || contacts.socials.linkedin || null,
+      instagram: authorSocials.instagram || contacts.socials.instagram || null,
+      twitter: authorSocials.twitter || contacts.socials.twitter || null,
+      facebook: authorSocials.facebook || contacts.socials.facebook || null,
+      tiktok: authorSocials.tiktok || null,
+      youtube: authorSocials.youtube || contacts.socials.youtube || null,
+      substack: authorSocials.substack || null,
+      authorWebsite: detail?.authorWebsite || (book.authors || [])[0]?.url || null,
+      authorBio: detail?.authorBio || null,
+      topReviews: (detail?.reviews || [])
+        .map((review) => (review.rating ? `[${review.rating}/5] ${review.text}` : review.text))
+        .join(" || ") || null,
       phone: contacts.phones[0] || null,
       allPhones: contacts.phones,
       whatsapp: contacts.whatsapp[0] || null,
       services: (classification.services || []).join("; "),
-      publishDate: published.iso || (published.year ? String(published.year) : null),
+      publishDate:
+        published.iso ||
+        (published.year ? String(published.year) : null) ||
+        detail?.labelledPublishDate ||
+        null,
       publishedYear: published.year,
+      expectedPublication: detail?.expectedPublication || null,
+      firstPublished: detail?.firstPublished || null,
       launchDate: launch.iso || (launch.year ? String(launch.year) : null),
       readersCount: book.readersCount ?? null,
-      reviewsCount: book.reviewsCount ?? null,
-      ratingsCount: book.ratingsCount ?? null,
+      // Prefer what the book itself declared; fall back to counts read off the page.
+      reviewsCount: book.reviewsCount ?? stats.reviewsCount ?? null,
+      ratingsCount: book.ratingsCount ?? stats.ratingsCount ?? null,
+      votersCount: stats.votersCount ?? null,
+      viewsCount: stats.viewsCount ?? null,
+      wantToReadCount: stats.wantToReadCount ?? null,
+      currentlyReadingCount: stats.currentlyReadingCount ?? null,
+      editionsCount: stats.editionsCount ?? null,
+      moreEditionsUrl: detail?.moreEditionsUrl || null,
       averageRating: book.averageRating ?? null,
       isbn: isbn || null,
       publisher: book.publisher || null,
       price: book.price ? `${book.price}${book.currency ? " " + book.currency : ""}` : null,
       pageCount: book.pageCount ?? null,
-      language: book.language || null,
+      language: book.language || detail?.labelledLanguage || null,
       format: book.format || null,
+      genres: (book.categories || []).join("; ") || detail?.labelledGenres || null,
       coverUrl: book.coverUrl || null,
       description: book.description || null,
       sourceUrl: book.url || pageUrl,
       extractedBy: book.source,
+      isDetailPage,
+      // Left blank on purpose for a later AI pass to complete.
+      found_email: "",
+      outreach_message: "",
+      platformSignal: classification.signal,
       platformId: classification.platformId,
       platformKnown: classification.known,
       signal: classification.signal,
@@ -217,4 +271,35 @@ export function diagnosePage(doc = document, pageUrl = location.href, registryJs
     },
     rejectedSamples: records.length ? [] : explainRejections(doc, pageUrl, bookContext),
   };
+}
+
+
+/**
+ * Every book link on a listing page, for the queue that visits them.
+ *
+ * Deduplicated and same-origin only: a catalogue links out to retailers and
+ * social sites, and following those is neither useful nor polite.
+ */
+export function collectBookLinks(doc = document, pageUrl = location.href) {
+  const records = extractPage(doc, pageUrl, null);
+  const origin = new URL(pageUrl).origin;
+  const seen = new Set();
+  const links = [];
+
+  for (const record of records) {
+    const href = record.sourceUrl;
+    if (!href || href === pageUrl) continue;
+    let url;
+    try {
+      url = new URL(href, pageUrl);
+    } catch {
+      continue;
+    }
+    if (url.origin !== origin) continue;
+    const clean = url.origin + url.pathname + url.search;
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    links.push({ url: clean, title: record.bookName, author: record.author || null });
+  }
+  return links;
 }

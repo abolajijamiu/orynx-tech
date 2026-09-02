@@ -320,6 +320,24 @@ export function bookFromNode(node, pageUrl, bookContext = false) {
   };
 }
 
+/**
+ * A container holding several cover links is a row or grid, not a book.
+ *
+ * Listing pages group covers under a heading — a genre name, a shelf label —
+ * and reading that container as one card turns the label into the title. The
+ * individual links inside it are the books, and link discovery finds them.
+ */
+function isRowContainer(node) {
+  let covers = 0;
+  for (const link of node.querySelectorAll("a[href]")) {
+    if (BOOK_LINK_RE.test(link.getAttribute("href") || "") && link.querySelector("img")) {
+      covers += 1;
+      if (covers >= 2) return true;
+    }
+  }
+  return false;
+}
+
 /** Cards found by class name. */
 function cardsBySelector(doc) {
   const selector = CARD_SELECTORS.join(",");
@@ -328,8 +346,10 @@ function cardsBySelector(doc) {
   // which means holding a cover. Titles routinely match the selector and wrap a
   // link — "<h3 class='product-title'><a>…</a></h3>" — and letting that displace
   // its parent loses the card holding the author.
-  return nodes.filter((node) =>
-    ![...node.querySelectorAll(selector)].some((child) => child.querySelector("img")),
+  return nodes.filter(
+    (node) =>
+      !isRowContainer(node) &&
+      ![...node.querySelectorAll(selector)].some((child) => child.querySelector("img")),
   );
 }
 
@@ -347,14 +367,20 @@ function cardsByLink(doc) {
     // and author, that container is the card and we walk up to it as usual.
     if (link.querySelector("img")) {
       const parent = link.parentElement;
-      if (!parent || readableText(parent).length < 3) {
+      // The link is the card when its container groups several covers (a genre
+      // row or shelf, whose heading would otherwise become the title), or when
+      // nothing around it adds text at all (a pure cover grid).
+      if (!parent || isRowContainer(parent) || readableText(parent).length < 3) {
         found.add(link);
         continue;
       }
     }
     let node = link;
     for (let depth = 0; depth < 4 && node.parentElement; depth += 1) {
-      node = node.parentElement;
+      const parent = node.parentElement;
+      // Never climb into a container holding other books.
+      if (isRowContainer(parent)) break;
+      node = parent;
       if (node.querySelector("img") && readableText(node).length > 3) break;
     }
     if (node && node !== doc.body) found.add(node);

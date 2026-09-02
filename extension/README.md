@@ -79,6 +79,42 @@ late-rendering catalogues both need it occasionally; the panel also rescans by
 itself for about a minute after load, since most shop front-ends render their
 grid after the page appears.
 
+## Visiting every book on a listing
+
+A listing gives titles and links; the detail pages hold the data worth having.
+**Copy links** puts every same-site book link on the clipboard. **Visit each book
+and save** works through them: one background tab at a time, read, saved, closed,
+with a pause before the next, and a progress line you can stop at any point.
+
+One tab at a time is deliberate. Opening forty at once is faster for about ten
+seconds and then bogs the browser down and gets the session rate-limited; a paced
+single worker looks like someone reading, and it can be interrupted.
+
+Re-visiting a book already in the library does not duplicate it — the detail page
+fills in the blanks on the row the listing created.
+
+## What a detail page yields
+
+Beyond the basics: original title, edition, series, awards, expected publication,
+genres, page count, language, more-editions link, and the counts a page publishes
+about itself — ratings, reviews, voters, views, want-to-read, currently reading,
+editions.
+
+For the author: the "about the author" text, their own website (social hosts are
+excluded, so it is genuinely theirs), any published email, and Facebook,
+Instagram, TikTok, X, LinkedIn, YouTube and Substack. Plus a capped sample of
+community review text, trimmed so a spreadsheet cell stays usable.
+
+`readersCount` and `viewsCount` stay empty on sites that publish neither, which
+is most of them.
+
+## The CSV, and the AI pass after it
+
+58 columns, one row per book. Two are deliberately blank: **`found_email`** and
+**`outreach_message`**. They are there for a later pass — hand the CSV to an AI
+with the author's website, socials and bio already in the row, and have it fill
+those two columns in. Everything that pass needs to work from is on the same row.
+
 ## Filtering
 
 Filter by which contact channels a record actually carries — email, phone,

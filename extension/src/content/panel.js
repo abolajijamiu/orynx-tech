@@ -6,7 +6,7 @@
  * whether the records carry a usable contact route.
  */
 
-import { COLUMNS, diagnosePage, extractPage, matchesFilter } from "./extract.js";
+import { COLUMNS, collectBookLinks, diagnosePage, extractPage, matchesFilter } from "./extract.js";
 
 const CHANNELS = [
   { key: "email", label: "Email" },
@@ -77,6 +77,13 @@ function render() {
     .join("");
 }
 
+function showProgress(text) {
+  const node = root?.querySelector("#orynx-progress");
+  if (!node) return;
+  node.hidden = false;
+  node.textContent = text;
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -135,10 +142,16 @@ function buildUi() {
         <label class="orynx-mode"><input type="checkbox" id="orynx-all"> match all</label>
       </div>
       <div class="orynx-list"></div>
+      <div class="orynx-progress" id="orynx-progress" hidden></div>
       <div class="orynx-foot">
         <button class="orynx-btn" id="orynx-why" title="Explain what was and was not found">Why?</button>
+        <button class="orynx-btn" id="orynx-links" title="Copy every book link on this page">Copy links</button>
         <button class="orynx-btn" id="orynx-csv">Export CSV</button>
-        <button class="orynx-btn primary" id="orynx-save">Save to library</button>
+        <button class="orynx-btn primary" id="orynx-save">Save</button>
+      </div>
+      <div class="orynx-foot">
+        <button class="orynx-btn wide primary" id="orynx-crawl">Visit each book and save</button>
+        <button class="orynx-btn" id="orynx-stop" hidden>Stop</button>
       </div>
     </div>`;
 
@@ -177,6 +190,49 @@ function buildUi() {
       root.querySelector("#orynx-why").textContent = "Select and copy";
     }
     setTimeout(() => { root.querySelector("#orynx-why").textContent = "Why?"; }, 2500);
+  });
+
+  root.querySelector("#orynx-links").addEventListener("click", async () => {
+    const links = collectBookLinks(document, location.href);
+    const button = root.querySelector("#orynx-links");
+    if (!links.length) {
+      button.textContent = "No links";
+      setTimeout(() => { button.textContent = "Copy links"; }, 2000);
+      return;
+    }
+    const text = links.map((link) => link.url).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = `Copied ${links.length}`;
+    } catch {
+      // Clipboard can be refused without a trusted gesture; show them instead.
+      root.querySelector(".orynx-list").innerHTML =
+        `<pre class="orynx-diag">${escapeHtml(text)}</pre>`;
+      button.textContent = "Shown below";
+    }
+    setTimeout(() => { button.textContent = "Copy links"; }, 2500);
+  });
+
+  root.querySelector("#orynx-crawl").addEventListener("click", async () => {
+    const links = collectBookLinks(document, location.href);
+    if (!links.length) {
+      showProgress("No book links found on this page.");
+      return;
+    }
+    const proceed = confirm(
+      `Visit ${links.length} book page(s) one at a time and save what each one has?\n\n` +
+      "Each opens in a background tab, is read, saved and closed, with a pause " +
+      "between. You can stop at any point.",
+    );
+    if (!proceed) return;
+    await chrome.runtime.sendMessage({ type: "orynx:queue:start", links });
+    root.querySelector("#orynx-stop").hidden = false;
+    showProgress(`Starting on ${links.length} book page(s)…`);
+  });
+
+  root.querySelector("#orynx-stop").addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "orynx:queue:stop" });
+    showProgress("Stopping after the current page…");
   });
 
   root.querySelector("#orynx-csv").addEventListener("click", () => download(selected()));
@@ -224,6 +280,22 @@ export async function init() {
   watchForLateContent();
 
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message?.type === "orynx:queue:progress") {
+      const state = message.state || {};
+      if (state.running) {
+        showProgress(
+          `${state.done}/${state.total} visited · ${state.saved} saved` +
+          (state.failed ? ` · ${state.failed} failed` : "") +
+          (state.current ? ` · reading ${String(state.current).slice(0, 40)}` : ""),
+        );
+      } else {
+        showProgress(
+          `Finished: ${state.done}/${state.total} visited, ${state.saved} saved` +
+          (state.failed ? `, ${state.failed} failed` : "") + ".",
+        );
+        if (root) root.querySelector("#orynx-stop").hidden = true;
+      }
+    }
     if (message?.type === "orynx:rescan") {
       rescan();
       respond({ ok: true, count: records.length, records });
