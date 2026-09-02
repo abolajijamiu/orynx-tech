@@ -32,8 +32,33 @@ const NOT_A_PERSONAL_SITE =
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function titleKey(title) {
+  return String(title || "")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim()
+    .replace(/^(?:the|a|an) /, "");
+}
+
+/**
+ * The identity of a book in the library.
+ *
+ * Keyed on ISBN, or failing that the title alone — deliberately not the title
+ * plus author. A listing often yields a title with no author and the detail
+ * page then supplies one, and including the author in the key files those as
+ * two different books.
+ */
 function keyOf(record) {
-  return record.isbn || `${(record.bookName || "").toLowerCase()}|${(record.author || "").toLowerCase()}`;
+  return record.isbn ? `i:${record.isbn}` : `t:${titleKey(record.bookName)}`;
+}
+
+function nameKey(name) {
+  if (!name) return "";
+  let text = String(name).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (text.includes(",")) {
+    const [family, ...rest] = text.split(",");
+    text = `${rest.join(",").trim()} ${family.trim()}`;
+  }
+  return text.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function saveRecords(records) {
@@ -43,7 +68,19 @@ async function saveRecords(records) {
   let enriched = 0;
 
   for (const record of records || []) {
-    const key = keyOf(record);
+    let key = keyOf(record);
+
+    // Two different books can share a title. When both sightings name an author
+    // and the names differ, they are separate books and get separate rows.
+    if (index.has(key)) {
+      const candidate = stored[index.get(key)];
+      const existingAuthor = nameKey(candidate.author);
+      const incomingAuthor = nameKey(record.author);
+      if (existingAuthor && incomingAuthor && existingAuthor !== incomingAuthor) {
+        key = `${key}|${incomingAuthor}`;
+      }
+    }
+
     if (!index.has(key)) {
       stored.push(record);
       index.set(key, stored.length - 1);

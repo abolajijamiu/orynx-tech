@@ -243,7 +243,12 @@ export function extractDetail(doc = document, pageUrl = "") {
   const fields = labelledFields(doc);
   const stats = bookStatistics(doc);
   const author = authorSection(doc);
-  const links = authorLinks(doc, author.node);
+  // Only harvest author links from inside an author block. Falling back to the
+  // whole page would collect the publisher's inbox and the site's own profiles
+  // and file them under the author, which is worse than leaving them empty.
+  const links = author.node
+    ? authorLinks(doc, author.node)
+    : { socials: {}, website: null, emails: [] };
   const reviews = communityReviews(doc);
 
   return {

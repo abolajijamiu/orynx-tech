@@ -171,16 +171,27 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       category: classification.category,
       country,
       contactPage,
-      email: (detail?.authorEmails || [])[0] || primaryEmail,
-      allEmails: contacts.emails.map((e) => e.value),
-      // An author's own profile outranks the site's footer links.
-      linkedin: authorSocials.linkedin || contacts.socials.linkedin || null,
-      instagram: authorSocials.instagram || contacts.socials.instagram || null,
-      twitter: authorSocials.twitter || contacts.socials.twitter || null,
-      facebook: authorSocials.facebook || contacts.socials.facebook || null,
+      // Author email comes only from author-scoped sources: the about-the-author
+      // block, the author's page, or their own site. A page-level address is
+      // the publisher's general inbox, and writing that into an author column
+      // would have an outreach step send personal mail to enquiries@.
+      email: (detail?.authorEmails || [])[0] || null,
+      // Still captured, just not passed off as the author's.
+      pageEmails: contacts.emails.map((e) => e.value).join(" ; ") || null,
+      // Only profiles found in an author context. A site's footer links are the
+      // platform's own — writing Goodreads' LinkedIn into an author's row makes
+      // the column look populated while being worse than empty for outreach.
+      linkedin: authorSocials.linkedin || null,
+      instagram: authorSocials.instagram || null,
+      twitter: authorSocials.twitter || null,
+      facebook: authorSocials.facebook || null,
       tiktok: authorSocials.tiktok || null,
-      youtube: authorSocials.youtube || contacts.socials.youtube || null,
+      youtube: authorSocials.youtube || null,
       substack: authorSocials.substack || null,
+      // Kept separately so the page's own presence is still visible, and still
+      // clearly not the author's.
+      siteSocials: Object.entries(contacts.socials || {})
+        .map(([network, url]) => `${network}=${url}`).join(" ; ") || null,
       authorWebsite: detail?.authorWebsite || (book.authors || [])[0]?.url || null,
       authorBio: detail?.authorBio || null,
       topReviews: (detail?.reviews || [])

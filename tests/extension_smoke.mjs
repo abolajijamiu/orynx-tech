@@ -102,11 +102,15 @@ console.log("\nJSON-LD book page");
   check("price", (r.price || "").startsWith("14.99"), r.price);
   check("format", r.format === "Paperback", r.format);
   check("page count", r.pageCount === 312, String(r.pageCount));
-  check("email via canonical domain", r.email === "hello@demopress.example", r.email);
+  check("page address is not the author's", !r.email, String(r.email));
+  check("page address still captured",
+        (r.pageEmails || "").includes("hello@demopress.example"), r.pageEmails);
   check("phone", (r.phone || "").includes("212"), r.phone);
   check("whatsapp from wa.me", r.whatsapp === "+2348012345678", r.whatsapp);
-  check("linkedin", (r.linkedin || "").includes("demo-hybrid-press"), r.linkedin);
-  check("instagram", (r.instagram || "").includes("demopress"), r.instagram);
+  check("publisher company page is not the author's LinkedIn", !r.linkedin, String(r.linkedin));
+  check("the site's own profiles are recorded separately",
+        (r.siteSocials || "").includes("demo-hybrid-press") &&
+        (r.siteSocials || "").includes("demopress"), r.siteSocials);
   check("contact page discovered", (r.contactPage || "").includes("submissions"), r.contactPage);
   check("classified hybrid from page text", r.category === "publisher_hybrid", r.category);
   check("pitch generated", (r.idealPitch || "").length > 20, (r.idealPitch || "").slice(0, 44));
@@ -128,7 +132,8 @@ console.log("\nUnstructured listing page (heuristics only)");
   const ash = records.find((r) => r.bookName === "Ashfall") || {};
   check("second book author", ash.author === "Chidi Okonkwo", ash.author);
   check("whatsapp from labelled text", (ash.whatsapp || "").includes("7700"), ash.whatsapp);
-  check("third-party generic inbox dropped", !ash.email, String(ash.email));
+  check("third-party generic inbox dropped", !(ash.pageEmails || "").includes("indiepress"),
+        String(ash.pageEmails));
 }
 
 console.log("\nByline parsing across name formats");
@@ -164,7 +169,10 @@ console.log("\nPublisher shop listing (the Pegasus case: cover + title + bare au
         Object.keys(byTitle).join(","));
   const ghost = records.find((r) => r.bookName === "Ghost") || {};
   check("known platform recognised", ghost.category === "publisher_vanity", ghost.category);
-  check("own-domain email captured", ghost.email === "enquiries@pegasuspublishers.com", ghost.email);
+  check("publisher inbox is not passed off as the author's",
+        !ghost.email, String(ghost.email));
+  check("but it is still captured, separately",
+        (ghost.pageEmails || "").includes("enquiries@pegasuspublishers.com"), ghost.pageEmails);
   check("cover url captured", Boolean(ghost.coverUrl), ghost.coverUrl);
 }
 
@@ -212,7 +220,9 @@ console.log("\nMeta-tag-only page");
   check("isbn", r.isbn === "9780306406157", r.isbn);
   check("launch date", r.launchDate === "2025-11-04", r.launchDate);
   check("classified vanity from page text", r.category === "publisher_vanity", r.category);
-  check("own-domain email kept", r.email === "editor@oldpublisher.example", r.email);
+  check("publisher inbox kept out of the author column", !r.email, String(r.email));
+  check("still recorded as a page address",
+        (r.pageEmails || "").includes("editor@oldpublisher.example"), r.pageEmails);
   check("vanity signal lifts priority", r.priority > 40, String(r.priority));
   check("via meta", r.extractedBy === "meta", r.extractedBy);
 }
@@ -628,6 +638,54 @@ console.log("\nChaining: books then authors in one run");
   check("the seeded book was enriched by the chained stage",
         (seed.authorBio || "").includes("historical fiction"), (seed.authorBio || "").slice(0, 40));
   await driver.close();
+}
+
+console.log("\nLibrary deduplication and author attribution");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  const driver = await context.newPage();
+  await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+  // The reported case: a listing yields a title with no author, then the same
+  // book turns up with one. Those are one book, not two.
+  await driver.evaluate(() => chrome.runtime.sendMessage({
+    type: "orynx:save",
+    records: [
+      { bookName: "Hollow Bones", author: "", isbn: null },
+      { bookName: "Hollow Bones", author: "Jodi Picoult", isbn: null },
+      { bookName: "The Hollow Bones", author: "", isbn: null },
+    ],
+  }));
+  let saved = await driver.evaluate(async () =>
+    (await chrome.runtime.sendMessage({ type: "orynx:list" })).records);
+  check("a title with and without an author is one book", saved.length === 1,
+        saved.map((r) => `${r.bookName}/${r.author}`).join(" | "));
+  check("the author is kept once known", saved[0]?.author === "Jodi Picoult", saved[0]?.author);
+
+  // Two genuinely different books sharing a title stay apart.
+  await driver.evaluate(() => chrome.runtime.sendMessage({
+    type: "orynx:save",
+    records: [{ bookName: "Hollow Bones", author: "Someone Else", isbn: null }],
+  }));
+  saved = await driver.evaluate(async () =>
+    (await chrome.runtime.sendMessage({ type: "orynx:list" })).records);
+  check("different authors, same title, stay separate", saved.length === 2,
+        saved.map((r) => `${r.bookName}/${r.author}`).join(" | "));
+  await driver.close();
+}
+
+console.log("\nSite footer links are not the author's");
+{
+  const records = await extractOn(page, "listing.html");
+  const anyAuthorSocial = records.some((r) => r.linkedin || r.instagram || r.facebook || r.twitter);
+  check("a listing page attributes no socials to authors", !anyAuthorSocial,
+        JSON.stringify(records.map((r) => r.linkedin || r.instagram)));
+  const detail = await extractOn(page, "detail_book.html");
+  check("an author's own profiles still come through",
+        Boolean(detail[0]?.instagram && detail[0]?.tiktok),
+        `${detail[0]?.instagram} / ${detail[0]?.tiktok}`);
 }
 
 console.log("\nCSV shape");

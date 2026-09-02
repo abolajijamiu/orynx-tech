@@ -11,8 +11,11 @@ const CHANNELS = [
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
   { key: "whatsapp", label: "WhatsApp" },
+  { key: "authorWebsite", label: "Website" },
   { key: "linkedin", label: "LinkedIn" },
   { key: "instagram", label: "Instagram" },
+  { key: "facebook", label: "Facebook" },
+  { key: "twitter", label: "X" },
 ];
 
 // The export shape lives with the extractor so the panel and the popup cannot
@@ -56,11 +59,12 @@ function render() {
   const rows = current();
   const shown = rows.filter(matches);
 
+  const where = view === "page" ? "on this page" : "saved";
   document.getElementById("summary").textContent =
-    view === "page"
-      ? `${rows.length} on this page · ${shown.length} shown · ${countWith(rows, "email")} with email`
-      : `${rows.length} saved · ${shown.length} shown · ${countWith(rows, "email")} with email, ` +
-        `${countWith(rows, "whatsapp")} with WhatsApp`;
+    `${rows.length} ${where} · ${shown.length} shown · ` +
+    `${countWith(rows, "email")} email · ${countWith(rows, "authorWebsite")} website · ` +
+    `${countWith(rows, "phone")} phone · ${countWith(rows, "facebook")} facebook · ` +
+    `${countWith(rows, "twitter")} X`;
 
   document.getElementById("save").style.display = view === "page" ? "" : "none";
   document.getElementById("clear").style.display = view === "saved" ? "" : "none";
@@ -83,6 +87,7 @@ function render() {
       <div class="name">${esc(record.bookName)}<span class="tier ${record.tier}">${record.tier} ${record.priority}</span></div>
       <div class="meta">${esc(record.author || "author unknown")} · ${esc(record.company || record.platformId || "")}</div>
       <div class="meta">${channels ? esc(channels) : "no contact route"} · ${esc(record.publishDate || "date unknown")}</div>
+      ${record.authorWebsite ? `<div class="meta site">${esc(record.authorWebsite)}</div>` : ""}
     </div>`;
   }).join("");
 }

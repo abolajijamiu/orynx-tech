@@ -166,9 +166,17 @@ kept because a row nobody can trace back cannot be checked.
 ## Filtering
 
 Filter by which contact channels a record actually carries — email, phone,
-WhatsApp, LinkedIn, Instagram — either "any of" or "match all". That is the
-question that decides whether a page is worth saving: a lead you cannot reach is
-not a lead.
+WhatsApp, **website**, LinkedIn, Instagram, **Facebook**, **X** — either "any of"
+or "match all". That is the question that decides whether a page is worth saving:
+a lead you cannot reach is not a lead. The author's website filter matters most,
+since a site is what the later hops turn into an address.
+
+**A social link is only recorded as the author's when it was found in an author
+context** — their page, or the about-the-author block on a book page. A site's
+footer profiles belong to the platform, and filing Goodreads' own LinkedIn under
+every author would make the column look full while being worse than empty for
+outreach. Those are kept separately instead. Author email follows the same rule:
+a page-level address is the publisher's general inbox, not the author's.
 
 ## Priority and pitch
 

@@ -13,8 +13,11 @@ const CHANNELS = [
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
   { key: "whatsapp", label: "WhatsApp" },
+  { key: "authorWebsite", label: "Website" },
   { key: "linkedin", label: "LinkedIn" },
   { key: "instagram", label: "Instagram" },
+  { key: "facebook", label: "Facebook" },
+  { key: "twitter", label: "X" },
 ];
 
 let records = [];
@@ -39,8 +42,11 @@ function render() {
   if (!root) return;
   const shown = visible();
   root.querySelector("#orynx-count").textContent = String(shown.length);
+  const withChannel = (field) => records.filter((record) => record[field]).length;
   root.querySelector(".orynx-sub").textContent =
-    `${records.length} found on this page · ${shown.length} match your filter`;
+    `${records.length} found · ${shown.length} shown · ` +
+    `${withChannel("email")} email · ${withChannel("authorWebsite")} website · ` +
+    `${withChannel("facebook")} facebook · ${withChannel("twitter")} X`;
 
   const list = root.querySelector(".orynx-list");
   if (!shown.length) {

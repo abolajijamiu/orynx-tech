@@ -16,6 +16,7 @@ header { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; }
 .row { padding: 9px 14px; border-bottom: 1px solid #f3f4f6; }
 .name { font-weight: 600; font-size: 12px; }
 .meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.meta.site { color: #2563eb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tier { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 5px; }
 .A { background: #d1fae5; color: #065f46; } .B { background: #fef3c7; color: #92400e; }
 .C { background: #f3f4f6; color: #374151; } .D { background: #fee2e2; color: #991b1b; }
