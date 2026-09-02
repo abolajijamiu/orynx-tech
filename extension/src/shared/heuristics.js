@@ -1,14 +1,25 @@
 /**
- * DOM heuristics: the last resort, for pages with no structured markup at all.
+ * DOM heuristics: for pages that declare no structured data at all.
  *
- * Deliberately conservative. A wrong book record is worse than a missing one,
- * so a candidate is kept only when a title is accompanied by corroborating
- * evidence — a byline, an ISBN, or a price — rather than on layout alone.
+ * The hard case is a shop or catalogue listing, where a card is often nothing
+ * but a cover image, a title and a bare author name — no ISBN, no "by", no
+ * price. Requiring one of those rejects most real publisher listings, so
+ * corroboration is context-aware: on a page already identified as a book
+ * platform, a cover plus an author-shaped line is evidence enough.
+ *
+ * Still conservative in the other direction. A wrong record is worse than a
+ * missing one, so a bare heading never becomes a book.
  */
 
-import { cleanText, normalizeIsbn, parseCount, readableText, splitAuthors } from "./normalize.js";
+import { cleanText, normalizeIsbn, normalizeTitle, parseCount, readableText, splitAuthors } from "./normalize.js";
 
 const ISBN_RE = /\b(?:ISBN(?:-1[03])?:?\s*)?((?:97[89][-\s]?)?(?:\d[-\s]?){9}[\dXx])\b/;
+const REVIEWS_RE = /([\d,]+)\s*(?:customer\s*)?(?:reviews?|ratings?)\b/i;
+const READERS_RE = /([\d,]+)\s*(?:readers?|reads|people are reading|currently reading)\b/i;
+const PUBDATE_RE = /(?:published|publication date|release date|pub date|first published|on sale)\s*:?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+ \d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{4}|\d{4})/i;
+const LAUNCH_RE = /(?:launch(?:es|ing|ed)?|releases?|available)\s*(?:on|date)?\s*:?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+ \d{4}|\d{4}-\d{2}-\d{2})/i;
+const PRICE_RE = /[$£€₦¥]\s?\d+(?:[.,]\d{2})?/;
+
 // Byline parsing. Two rules do the work:
 //  - a name token ends in a lowercase letter, so "Blake" is a name and "ISBN"
 //    is an acronym that terminates the match;
@@ -20,8 +31,10 @@ const STOP_WORDS = [
   "Buy", "Add", "Read", "More", "Details", "Paperback", "Hardcover", "Hardback",
   "Ebook", "Kindle", "Audiobook", "Genre", "Category", "Series", "Edition",
   "Language", "Imprint", "Sale", "Preorder", "Order", "View", "Learn", "Shop",
+  "Home", "Books", "Authors", "About", "Contact", "Submissions", "Features",
+  "Login", "Sign", "Cart", "Search", "Menu", "Fiction", "Non", "Latest",
 ];
-// Lowercase particles carried inside many names: Ngugi wa Thiong'o, Ludwig van
+// Lowercase particles carried inside many names: Ngugi wa Thiongo, Ludwig van
 // Beethoven, Ahmed ibn Fadlan. Without these the surname is silently truncated.
 const PARTICLES = [
   "van", "von", "de", "del", "della", "der", "den", "da", "di", "du", "dos",
@@ -29,7 +42,7 @@ const PARTICLES = [
 ];
 
 const NAME_TOKEN =
-  `(?!(?:${STOP_WORDS.join("|")})\\b)(?:[A-Z]\\.|[A-Z][\\p{L}'\u2019\\-]*[\\p{Ll}])`;
+  `(?!(?:${STOP_WORDS.join("|")})\\b)(?:[A-Z]\\.|[A-Z][\\p{L}'’\\-]*[\\p{Ll}])`;
 const NAME_PART = `(?:${NAME_TOKEN}|(?:${PARTICLES.join("|")})\\b)`;
 const NAME = `${NAME_TOKEN}(?:\\s+${NAME_PART}){0,4}`;
 const BYLINE_RE = new RegExp(
@@ -37,60 +50,215 @@ const BYLINE_RE = new RegExp(
   "u",
 );
 const TRAILING_PARTICLE = new RegExp(`\\s+(?:${PARTICLES.join("|")})$`, "i");
+const BYLINE_PREFIX = /^\s*(?:by|written by|author[:s]?)\s*[:\-]?\s*/i;
 
-const REVIEWS_RE = /([\d,]+)\s*(?:customer\s*)?(?:reviews?|ratings?)\b/i;
-const READERS_RE = /([\d,]+)\s*(?:readers?|reads|people are reading|currently reading)\b/i;
-const PUBDATE_RE = /(?:published|publication date|release date|pub date|first published|on sale)\s*:?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+ \d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{4}|\d{4})/i;
-const LAUNCH_RE = /(?:launch(?:es|ing|ed)?|releases?|available)\s*(?:on|date)?\s*:?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+ \d{4}|\d{4}-\d{2}-\d{2})/i;
+// Paths that mean "this link points at a book", used to find cards on sites
+// whose class names give nothing away.
+export const BOOK_LINK_RE = /\/(?:book|books|title|titles|product|products|shop|catalog|catalogue|item|p)\/[^/]/i;
 
 // Containers that usually hold one book each on a listing page.
 const CARD_SELECTORS = [
   "article", "li.product", "div.product", ".book", ".book-card", ".book-item",
-  ".product-item", ".entry", ".post", ".card", "[class*='book']", "[class*='product']",
+  ".product-item", ".product-card", ".entry", ".post", ".card",
+  "[class*='book']", "[class*='product']",
 ];
+
+const AUTHOR_SELECTORS = [
+  '[itemprop="author"]', '[class*="author" i]', '[class*="byline" i]',
+  '[class*="writer" i]', ".by", "[rel='author']",
+];
+
+const JOB_WORDS =
+  /\b(partner|manager|director|head|officer|ceo|cto|coo|cfo|founder|consultant|engineer|designer|analyst|assistant|associate|executive|president|chair|lead|specialist|coordinator|administrator)\b/i;
+
+const NAV_WORDS = new Set([
+  "home", "books", "authors", "about", "about us", "contact", "submissions",
+  "features", "login", "sign up", "cart", "search", "menu", "shop", "blog",
+  "news", "fiction", "non-fiction", "more", "next", "previous", "read more",
+]);
 
 function textOf(node) {
   return readableText(node);
 }
 
-function findTitle(node) {
-  for (const selector of ["h1", "h2", "h3", ".title", "[class*='title']", "a"]) {
+/** Is this a plausible personal name rather than a label or a sentence? */
+export function looksLikePersonName(text) {
+  const cleaned = (text || "").replace(BYLINE_PREFIX, "").trim().replace(/[.,;:]$/, "");
+  if (cleaned.length < 3 || cleaned.length > 80) return false;
+  if (NAV_WORDS.has(cleaned.toLowerCase())) return false;
+  if (/\d/.test(cleaned)) return false;
+  const words = cleaned.split(/\s+/);
+  if (words.length < 2 || words.length > 6) return false;
+  const nameish = words.filter(
+    (word) => /^[\p{Lu}]/u.test(word) || PARTICLES.includes(word.toLowerCase()),
+  ).length;
+  // Allows "Colleen Quinn, PhD" and "COLLEEN QUINN" while rejecting prose.
+  return nameish >= 2 && nameish / words.length >= 0.6;
+}
+
+/** Leaf-ish elements, i.e. those holding text rather than more structure. */
+function textBlocks(node) {
+  const blocks = [];
+  for (const element of node.querySelectorAll("span, div, p, strong, b, em, td, h5, h6, li")) {
+    if (element.querySelector("span, div, p, li")) continue;
+    const text = textOf(element);
+    if (text && text.length >= 2 && text.length <= 200) blocks.push(text);
+  }
+  return blocks;
+}
+
+/**
+ * Find the author of a card, whether or not the page writes "by".
+ *
+ * Publisher listings usually print the name as bare text under the title, so
+ * requiring a byline misses most of them. The unlabelled fallback only runs in a
+ * book context, because on a team page "Managing Partner" is shaped exactly like
+ * a name and would otherwise be captured as one.
+ */
+export function findAuthor(node, options = {}) {
+  const { bookContext = false, exclude = null, allowUnlabelled = true } = options;
+
+  for (const selector of AUTHOR_SELECTORS) {
     const found = node.querySelector(selector);
     const text = textOf(found);
-    if (text && text.length >= 2 && text.length <= 200) return text;
+    if (text && looksLikePersonName(text)) return text.replace(BYLINE_PREFIX, "").trim();
+  }
+
+  const match = textOf(node).match(BYLINE_RE);
+  if (match) return match[1].replace(TRAILING_PARTICLE, "");
+
+  if (bookContext && allowUnlabelled) {
+    for (const text of textBlocks(node)) {
+      if (exclude && text === exclude) continue;
+      if (JOB_WORDS.test(text)) continue;
+      if (looksLikePersonName(text)) return text;
+    }
   }
   return null;
 }
 
-/** Pull a book out of one container, or null when the evidence is too thin. */
-export function bookFromNode(node, pageUrl) {
+/** Headings, title classes and link text: the reliable places a title lives. */
+function findTitleStrong(node) {
+  for (const selector of ["h1", "h2", "h3", "h4", ".title", "[class*='title']", "a"]) {
+    for (const candidate of node.querySelectorAll(selector)) {
+      const text = textOf(candidate);
+      if (!text || text.length < 2 || text.length > 200) continue;
+      if (NAV_WORDS.has(text.toLowerCase())) continue;
+      return text;
+    }
+  }
+  return null;
+}
+
+/** The words in a URL's last path segment: "/shop/book/red-umbrellas" -> "red umbrellas". */
+function slugWords(href) {
+  const path = String(href || "").split("?")[0].split("#")[0].replace(/\/+$/, "");
+  const last = path.split("/").pop() || "";
+  return last.replace(/[-_]+/g, " ").replace(/\.(html?|php|aspx)$/i, "").trim();
+}
+
+/**
+ * Title and author when neither is marked up.
+ *
+ * A grid card can be two capitalised lines with nothing to say which is the book
+ * and which is the person. The link decides it: "/shop/book/red-umbrellas"
+ * names the title. Failing that, listings put the title first.
+ */
+function fallbackTitleAndAuthor(node, link, bookContext) {
+  const blocks = textBlocks(node).filter(
+    (text) =>
+      !NAV_WORDS.has(text.toLowerCase()) &&
+      !PRICE_RE.test(text) &&
+      !/^[\d\s.,]+$/.test(text),
+  );
+  if (!blocks.length) return { title: null, author: null };
+
+  let title = null;
+  const slug = link ? normalizeTitle(slugWords(link.getAttribute("href") || "")) : "";
+  if (slug.length > 3) {
+    title =
+      blocks.find((text) => normalizeTitle(text) === slug) ||
+      blocks.find((text) => {
+        const normalized = normalizeTitle(text);
+        return normalized.length > 3 && slug.startsWith(normalized);
+      }) ||
+      null;
+  }
+  if (!title) title = blocks[0];
+
+  const author = bookContext
+    ? blocks.find(
+        (text) => text !== title && !JOB_WORDS.test(text) && looksLikePersonName(text),
+      ) || null
+    : null;
+  return { title, author };
+}
+
+function bookLinkIn(node) {
+  for (const link of node.querySelectorAll("a[href]")) {
+    const href = link.getAttribute("href") || "";
+    if (BOOK_LINK_RE.test(href)) return link;
+  }
+  return node.querySelector("a[href]");
+}
+
+/**
+ * Pull a book out of one container.
+ *
+ * `bookContext` says whether the page is already known to be about books — from
+ * the platform registry or the page's own wording. When it is, a cover plus an
+ * author-shaped line is enough; when it is not, hard evidence is required.
+ */
+export function bookFromNode(node, pageUrl, bookContext = false) {
   const text = textOf(node);
   if (!text || text.length > 4000) return null;
 
-  const title = findTitle(node);
+  const link = bookLinkIn(node);
+  const strongTitle = findTitleStrong(node);
+  // With a marked-up title the author search can exclude it. Without one, both
+  // are unlabelled and must be decided together, or the two get swapped.
+  let author = findAuthor(node, {
+    bookContext,
+    exclude: strongTitle,
+    allowUnlabelled: Boolean(strongTitle),
+  });
+  let title = strongTitle;
+  if (!title) {
+    const fallback = fallbackTitleAndAuthor(node, link, bookContext);
+    title = fallback.title;
+    if (!author) author = fallback.author;
+  }
   if (!title) return null;
 
   const isbnMatch = text.match(ISBN_RE);
-  const bylineMatch = text.match(BYLINE_RE);
-  const priceMatch = text.match(/[$£€]\s?\d+(?:[.,]\d{2})?/);
+  const priceMatch = text.match(PRICE_RE);
+  const image = node.querySelector("img[src], img[data-src], img[srcset]");
+  const hasBookLink = Boolean(link && BOOK_LINK_RE.test(link.getAttribute("href") || ""));
 
-  // Corroboration rule: a heading alone is not a book.
-  if (!isbnMatch && !bylineMatch && !priceMatch) return null;
+  const strong = Boolean(isbnMatch || priceMatch || text.match(BYLINE_RE));
+  const weak = Boolean(author && (image || hasBookLink)) || Boolean(image && hasBookLink);
+  if (!strong && !(bookContext && weak)) return null;
+  // Never accept the title on its own, whatever the context.
+  if (!strong && !author && !image) return null;
 
-  const link = node.querySelector("a[href]");
-  const img = node.querySelector("img[src], img[data-src]");
   const pubMatch = text.match(PUBDATE_RE);
   const launchMatch = text.match(LAUNCH_RE);
   const reviewsMatch = text.match(REVIEWS_RE);
   const readersMatch = text.match(READERS_RE);
   const ratingMatch = text.match(/([\d.]+)\s*(?:out of|\/)\s*5/i);
 
+  let href = null;
+  if (link) {
+    try {
+      href = new URL(link.getAttribute("href"), pageUrl).href;
+    } catch { /* malformed href */ }
+  }
+
   return {
     title,
     subtitle: null,
-    authors: bylineMatch
-      ? splitAuthors(bylineMatch[1].replace(TRAILING_PARTICLE, ""))
-          .map((name) => ({ name, url: null, description: null }))
+    authors: author
+      ? splitAuthors(author).map((name) => ({ name, url: null, description: null }))
       : [],
     isbn: isbnMatch ? normalizeIsbn(isbnMatch[1]) : null,
     publisher: null,
@@ -99,7 +267,9 @@ export function bookFromNode(node, pageUrl) {
     description: null,
     language: null,
     pageCount: null,
-    coverUrl: img ? img.getAttribute("src") || img.getAttribute("data-src") : null,
+    coverUrl: image
+      ? image.getAttribute("src") || image.getAttribute("data-src")
+      : null,
     categories: [],
     averageRating: ratingMatch ? Number(ratingMatch[1]) : null,
     reviewsCount: reviewsMatch ? parseCount(reviewsMatch[1]) : null,
@@ -107,33 +277,109 @@ export function bookFromNode(node, pageUrl) {
     readersCount: readersMatch ? parseCount(readersMatch[1]) : null,
     price: priceMatch ? priceMatch[0] : null,
     currency: null,
-    url: link ? new URL(link.getAttribute("href"), pageUrl).href : pageUrl,
+    url: href || pageUrl,
     format: null,
     source: "heuristic",
   };
 }
 
-export function extractHeuristicBooks(doc = document, pageUrl = "", limit = 200) {
+/** Cards found by class name. */
+function cardsBySelector(doc) {
+  const nodes = [...doc.querySelectorAll(CARD_SELECTORS.join(","))];
+  // Drop containers that merely wrap other candidates; the inner one wins.
+  return nodes.filter((node) => !node.querySelector(CARD_SELECTORS.join(",")));
+}
+
+/**
+ * Cards found by structure, for sites whose class names give nothing away.
+ * Walks up from each book-shaped link to the smallest ancestor holding a cover.
+ */
+function cardsByLink(doc) {
+  const found = new Set();
+  for (const link of doc.querySelectorAll("a[href]")) {
+    if (!BOOK_LINK_RE.test(link.getAttribute("href") || "")) continue;
+    let node = link;
+    for (let depth = 0; depth < 4 && node.parentElement; depth += 1) {
+      node = node.parentElement;
+      if (node.querySelector("img") && readableText(node).length > 3) break;
+    }
+    if (node && node !== doc.body) found.add(node);
+  }
+  const cards = [...found];
+  return cards.filter((node) => !cards.some((other) => other !== node && node.contains(other)));
+}
+
+export function extractHeuristicBooks(doc = document, pageUrl = "", options = {}) {
+  const { limit = 200, bookContext = false } = options;
   const seen = new Set();
   const books = [];
-  const nodes = doc.querySelectorAll(CARD_SELECTORS.join(","));
 
-  for (const node of nodes) {
-    // Skip a container that merely wraps other candidates; the inner one wins.
-    if (node.querySelector(CARD_SELECTORS.join(","))) continue;
-    const book = bookFromNode(node, pageUrl);
-    if (!book) continue;
-    const key = `${book.title.toLowerCase()}|${book.authors[0]?.name?.toLowerCase() || ""}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    books.push(book);
-    if (books.length >= limit) break;
-  }
+  const candidates = cardsBySelector(doc);
+  const collect = (nodes) => {
+    for (const node of nodes) {
+      const book = bookFromNode(node, pageUrl, bookContext);
+      if (!book) continue;
+      const key = `${book.title.toLowerCase()}|${book.authors[0]?.name?.toLowerCase() || ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      books.push(book);
+      if (books.length >= limit) return true;
+    }
+    return false;
+  };
+
+  if (collect(candidates)) return books;
+  // Structural discovery adds the cards class names missed.
+  collect(cardsByLink(doc));
 
   // A detail page often has no card at all; read the page itself as one record.
   if (books.length === 0 && doc.body) {
-    const single = bookFromNode(doc.body, pageUrl);
+    const single = bookFromNode(doc.body, pageUrl, bookContext);
     if (single) books.push(single);
   }
   return books;
+}
+
+/** Why nothing was found — used by the panel's diagnostics. */
+export function explainRejections(doc = document, pageUrl = "", bookContext = false) {
+  const rejected = [];
+  for (const node of [...cardsBySelector(doc), ...cardsByLink(doc)].slice(0, 60)) {
+    if (bookFromNode(node, pageUrl, bookContext)) continue;
+    const text = textOf(node);
+    const title =
+      findTitleStrong(node) || fallbackTitleAndAuthor(node, bookLinkIn(node), bookContext).title;
+    rejected.push({
+      title: title ? title.slice(0, 60) : null,
+      reason: !title
+        ? "no usable title in this container"
+        : !findAuthor(node, { bookContext }) && !text.match(ISBN_RE) && !text.match(PRICE_RE)
+          ? "title found, but no author, ISBN or price beside it"
+          : "not enough corroborating evidence for this page context",
+      sample: text.slice(0, 90),
+    });
+  }
+  return rejected.slice(0, 12);
+}
+
+
+// Vocabulary that only appears on pages about books.
+const BOOK_WORDS =
+  /\b(isbn|paperback|hardback|hardcover|ebook|audiobook|novel|manuscript|synopsis|blurb|imprint|bookshop|our authors|book review)\b/i;
+
+/**
+ * Does this page look like it is about books, independent of the registry?
+ *
+ * This is what lets an unfamiliar site work on first contact: several
+ * book-shaped links, or the vocabulary of publishing, is enough to relax the
+ * evidence a listing card must carry.
+ */
+export function pageLooksBooky(doc = document, pageText = "") {
+  let bookLinks = 0;
+  for (const link of doc.querySelectorAll("a[href]")) {
+    if (BOOK_LINK_RE.test(link.getAttribute("href") || "")) {
+      bookLinks += 1;
+      if (bookLinks >= 3) return true;
+    }
+  }
+  return BOOK_WORDS.test(pageText.slice(0, 60000));
 }

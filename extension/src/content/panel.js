@@ -6,7 +6,7 @@
  * whether the records carry a usable contact route.
  */
 
-import { COLUMNS, extractPage, matchesFilter } from "./extract.js";
+import { COLUMNS, diagnosePage, extractPage, matchesFilter } from "./extract.js";
 
 const CHANNELS = [
   { key: "email", label: "Email" },
@@ -19,6 +19,7 @@ const CHANNELS = [
 let records = [];
 let filter = { channels: [], requireAll: false, minPriority: 0, tiers: [], query: "" };
 let root = null;
+let cachedRegistry = null;
 
 async function loadRegistry() {
   try {
@@ -135,6 +136,7 @@ function buildUi() {
       </div>
       <div class="orynx-list"></div>
       <div class="orynx-foot">
+        <button class="orynx-btn" id="orynx-why" title="Explain what was and was not found">Why?</button>
         <button class="orynx-btn" id="orynx-csv">Export CSV</button>
         <button class="orynx-btn primary" id="orynx-save">Save to library</button>
       </div>
@@ -163,25 +165,67 @@ function buildUi() {
     filter.requireAll = event.target.checked;
     render();
   });
+  root.querySelector("#orynx-why").addEventListener("click", async () => {
+    const report = JSON.stringify(diagnosePage(document, location.href, cachedRegistry), null, 2);
+    const list = root.querySelector(".orynx-list");
+    list.innerHTML = `<pre class="orynx-diag">${escapeHtml(report)}</pre>`;
+    try {
+      await navigator.clipboard.writeText(report);
+      root.querySelector("#orynx-why").textContent = "Copied";
+    } catch {
+      // Clipboard needs a user gesture and permission; the text is on screen anyway.
+      root.querySelector("#orynx-why").textContent = "Select and copy";
+    }
+    setTimeout(() => { root.querySelector("#orynx-why").textContent = "Why?"; }, 2500);
+  });
+
   root.querySelector("#orynx-csv").addEventListener("click", () => download(selected()));
   root.querySelector("#orynx-save").addEventListener("click", () => save(selected()));
 }
 
+function rescan() {
+  records = extractPage(document, location.href, cachedRegistry);
+  window.__orynxRecords = records;
+  render();
+  return records.length;
+}
+
+/**
+ * Most shop and catalogue front-ends render their grid after document_idle, so
+ * a single pass at load time finds nothing. This re-runs extraction when the
+ * page changes, debounced, and gives up once the page settles — a permanent
+ * observer on a busy site would cost more than it returns.
+ */
+function watchForLateContent() {
+  let timer = null;
+  let passes = 0;
+  const observer = new MutationObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      passes += 1;
+      const before = records.length;
+      const after = rescan();
+      if (passes >= 12 || (after > 0 && after === before)) observer.disconnect();
+    }, 700);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  // Stop watching regardless after a minute; nothing useful arrives later.
+  setTimeout(() => observer.disconnect(), 60000);
+}
+
 export async function init() {
-  const registry = await loadRegistry();
-  records = extractPage(document, location.href, registry);
+  cachedRegistry = await loadRegistry();
+  records = extractPage(document, location.href, cachedRegistry);
   // Expose for automated testing and for the popup to re-read.
   window.__orynxRecords = records;
   if (!document.body) return;
   buildUi();
   render();
+  watchForLateContent();
 
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message?.type === "orynx:rescan") {
-      records = extractPage(document, location.href, registry);
-      window.__orynxRecords = records;
-      render();
-      respond({ ok: true, count: records.length });
+      respond({ ok: true, count: rescan() });
     }
     return true;
   });

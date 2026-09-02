@@ -127,6 +127,36 @@ console.log("\nByline parsing across name formats");
   check("non-book card rejected", !("Company News" in byTitle), Object.keys(byTitle).join(","));
 }
 
+console.log("\nPublisher shop listing (the Pegasus case: cover + title + bare author)");
+{
+  const records = await extractOn(page, "shop_listing.html");
+  const byTitle = Object.fromEntries(records.map((r) => [r.bookName, r.author]));
+  check("finds books with no ISBN, no price and no 'by'", records.length >= 5,
+        `${records.length}: ${Object.keys(byTitle).join(" | ")}`);
+  check("author from a class-named element", byTitle["Ghost"] === "Lea Tonin", byTitle["Ghost"]);
+  check("internal capital in surname", byTitle["Out of the Main(e)"] === "Cindy McCarley",
+        byTitle["Out of the Main(e)"]);
+  check("credential suffix stripped", (byTitle["Essence Merging"] || "").startsWith("Colleen Quinn"),
+        byTitle["Essence Merging"]);
+  check("structural card with no useful classes", byTitle["Red Umbrellas"] === "Marta Oyelaran",
+        byTitle["Red Umbrellas"]);
+  check("particle name in a structural card", byTitle["Quiet Tide"] === "Ngugi wa Thiongo",
+        byTitle["Quiet Tide"]);
+  check("navigation links are not books", !("About Us" in byTitle) && !("Fiction" in byTitle),
+        Object.keys(byTitle).join(","));
+  const ghost = records.find((r) => r.bookName === "Ghost") || {};
+  check("known platform recognised", ghost.category === "publisher_vanity", ghost.category);
+  check("own-domain email captured", ghost.email === "enquiries@pegasuspublishers.com", ghost.email);
+  check("cover url captured", Boolean(ghost.coverUrl), ghost.coverUrl);
+}
+
+console.log("\nUnknown site must not get the relaxed threshold");
+{
+  const records = await extractOn(page, "generic_page.html");
+  check("no books invented on an unrelated page", records.length === 0,
+        records.map((r) => r.bookName).join(" | "));
+}
+
 console.log("\nMeta-tag-only page");
 {
   const records = await extractOn(page, "meta_book.html");
@@ -140,6 +170,33 @@ console.log("\nMeta-tag-only page");
   check("own-domain email kept", r.email === "editor@oldpublisher.example", r.email);
   check("vanity signal lifts priority", r.priority > 40, String(r.priority));
   check("via meta", r.extractedBy === "meta", r.extractedBy);
+}
+
+console.log("\nLate-rendering grid (content arrives after document_idle)");
+{
+  await page.goto(`${BASE}/lazy_listing.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#orynx-badge", { timeout: 15000 });
+  const initial = await page.textContent("#orynx-count");
+  // The observer is debounced, so allow it a moment to notice the new grid.
+  await page.waitForFunction(
+    () => document.querySelector("#orynx-count")?.textContent === "1",
+    null, { timeout: 12000 },
+  ).catch(() => {});
+  const after = await page.textContent("#orynx-count");
+  check("finds nothing at first load", initial === "0", initial);
+  check("rescans once the grid renders", after === "1", after);
+}
+
+console.log("\nDiagnostics");
+{
+  await page.goto(`${BASE}/generic_page.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#orynx-badge", { timeout: 15000 });
+  await page.click("#orynx-badge");
+  await page.click("#orynx-why");
+  const report = await page.textContent(".orynx-diag");
+  check("diagnostics render", Boolean(report && report.includes("\"found\": 0")));
+  check("reports platform context", report.includes("bookContext"));
+  check("explains why cards were rejected", report.includes("rejectedSamples"));
 }
 
 console.log("\nPanel UI (extension loaded)");

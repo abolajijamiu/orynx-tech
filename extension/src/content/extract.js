@@ -6,11 +6,11 @@
  * the DOM. Every field records which extractor produced it.
  */
 
-import { extractHeuristicBooks } from "../shared/heuristics.js";
+import { explainRejections, extractHeuristicBooks, pageLooksBooky } from "../shared/heuristics.js";
 import { extractJsonLdBooks } from "../shared/jsonld.js";
 import { extractMetaBook, extractMicrodataBooks } from "../shared/meta.js";
 import { classifyPage, loadRegistry, pitchFor, scoreLead } from "../shared/classify.js";
-import { extractContacts } from "../shared/contacts.js";
+import { extractContacts, siteDomain } from "../shared/contacts.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
 export const COLUMNS = [
@@ -62,17 +62,28 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
   const microdataBooks = extractMicrodataBooks(doc, pageUrl);
   const metaBook = extractMetaBook(doc, pageUrl);
 
+  const pageText = readableText(doc.body);
+  // Classify by the domain the site claims as its own, so a page served from a
+  // CDN, a staging host or a local mirror still resolves to the right platform.
+  const classification = classifyPage(siteDomain(doc, pageUrl) || new URL(pageUrl).hostname, pageText);
+  // A known book platform, a page that talks like a publisher, or one simply
+  // shaped like a book catalogue all lower the evidence a listing card must
+  // supply: a cover and an author name become enough. This is what makes a site
+  // nobody has configured work on first contact.
+  const bookContext =
+    classification.known ||
+    classification.category !== "unknown" ||
+    pageLooksBooky(doc, pageText);
+
   let candidates = [...jsonLdBooks, ...microdataBooks];
   if (metaBook) candidates.push(metaBook);
   // Only fall back to guessing at structure when nothing declared any.
   if (candidates.length === 0) {
-    candidates = extractHeuristicBooks(doc, pageUrl);
+    candidates = extractHeuristicBooks(doc, pageUrl, { bookContext });
   }
 
   const merged = mergeBooks(candidates);
   const contacts = extractContacts(doc, pageUrl);
-  const pageText = readableText(doc.body);
-  const classification = classifyPage(new URL(pageUrl).hostname, pageText);
   const company = siteName(doc, classification);
   const capturedAt = new Date().toISOString();
 
@@ -156,4 +167,54 @@ export function matchesFilter(record, filter = {}) {
     if (!haystack.includes(needle)) return false;
   }
   return true;
+}
+
+
+/**
+ * Why a page produced what it did.
+ *
+ * When a page that obviously contains books yields none, the useful question is
+ * which stage gave up and why. This reports that in a form a user can paste
+ * back, which is far faster than guessing at someone else's markup.
+ */
+export function diagnosePage(doc = document, pageUrl = location.href, registryJson = null) {
+  if (registryJson) loadRegistry(registryJson);
+
+  const pageText = readableText(doc.body);
+  const classification = classifyPage(siteDomain(doc, pageUrl) || new URL(pageUrl).hostname, pageText);
+  const bookContext =
+    classification.known ||
+    classification.category !== "unknown" ||
+    pageLooksBooky(doc, pageText);
+  const { books: jsonLdBooks } = extractJsonLdBooks(doc, pageUrl);
+  const contacts = extractContacts(doc, pageUrl);
+  const records = extractPage(doc, pageUrl, null);
+
+  return {
+    url: pageUrl,
+    title: doc.title,
+    found: records.length,
+    platform: {
+      id: classification.platformId,
+      known: classification.known,
+      category: classification.category,
+      signal: classification.signal,
+      bookContext,
+    },
+    structured: {
+      jsonLdScripts: doc.querySelectorAll('script[type="application/ld+json"]').length,
+      jsonLdBooks: jsonLdBooks.length,
+      microdataRoots: doc.querySelectorAll('[itemtype*="schema.org/Book" i], [itemtype*="schema.org/Product" i]').length,
+      ogType: doc.querySelector('meta[property="og:type"]')?.getAttribute("content") || null,
+      bookMetaTags: doc.querySelectorAll('meta[property^="book:"], meta[name^="citation_"]').length,
+    },
+    contacts: {
+      emails: contacts.emails.length,
+      phones: contacts.phones.length,
+      whatsapp: contacts.whatsapp.length,
+      socials: Object.keys(contacts.socials),
+      contactPages: contacts.contactPages.length,
+    },
+    rejectedSamples: records.length ? [] : explainRejections(doc, pageUrl, bookContext),
+  };
 }

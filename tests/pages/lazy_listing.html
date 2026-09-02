@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lazy shop</title>
+<link rel="canonical" href="https://pegasuspublishers.com/shop/category/latest"></head>
+<body><h1>Latest</h1><div id="grid"></div>
+<script>
+  // Books arrive well after document_idle, as on most modern shop front-ends.
+  setTimeout(() => {
+    document.getElementById("grid").innerHTML = `
+      <div class="product"><a href="/shop/book/late-arrival"><img src="/c.jpg" alt="cover"></a>
+        <h3 class="product-title">Late Arrival</h3><div class="product-author">Deferred Author</div></div>`;
+  }, 900);
+</script></body></html>
