@@ -8,6 +8,10 @@
  * paced single worker looks like a person reading, and it can be stopped.
  */
 
+// Static import, not dynamic: a service worker forbids import() at runtime, and
+// the manifest declares this worker as a module so a top-level import is fine.
+import { classifyAuthorLink, isPlatformHost } from "../shared/links.js";
+
 const KEY = "orynx.leads";
 const QUEUE_KEY = "orynx.queue";
 
@@ -26,9 +30,7 @@ const DEFAULTS = {
   chainAuthors: true,
 };
 
-// Hosts that are somebody's profile, not an author's own website.
-const NOT_A_PERSONAL_SITE =
-  /(goodreads|amazon|facebook|instagram|twitter|x\.com|tiktok|linkedin|youtube|pinterest|wikipedia|barnesandnoble|bookshop\.org|kobo|apple\.com|google\.|substack\.com)/i;
+
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -211,12 +213,15 @@ async function processAuthor(link, options) {
     const hasSomething =
       contacts && ((contacts.emails || []).length || Object.keys(contacts.socials || {}).length);
     if (!hasSomething) return 0;
+    // This URL was not a profile page. Whether it is the author's own site or a
+    // profile elsewhere decides which column it belongs in.
+    const kind = classifyAuthorLink(link.url, link.url);
     profile = {
       authorName: link.author || null,
       authorNameKey: null,
-      authorPageUrl: null,
+      authorPageUrl: kind === "page" ? link.url : null,
       authorBio: null,
-      authorWebsite: link.url,
+      authorWebsite: kind === "website" ? link.url : null,
       authorEmail: null,
       authorPhone: null,
       authorSocials: {},
@@ -248,7 +253,7 @@ async function readContacts(url, options) {
  * the address one click away rather than on the front.
  */
 async function harvestFromSite(profile, site, options) {
-  if (!/^https?:\/\//i.test(site) || NOT_A_PERSONAL_SITE.test(site)) return;
+  if (!/^https?:\/\//i.test(site) || isPlatformHost(site)) return;
 
   let contacts = null;
   try {

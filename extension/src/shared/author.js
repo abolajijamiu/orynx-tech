@@ -9,6 +9,7 @@
 
 import { cleanText, normalizePerson, parseCount, readableText } from "./normalize.js";
 import { authorLinks } from "./detail.js";
+import { asAuthorWebsite } from "./links.js";
 
 const AUTHOR_URL_RE = /\/(?:author|authors|writer|writers|contributor|contributors|profile)\//i;
 
@@ -162,7 +163,12 @@ export function extractAuthorProfile(doc = document, pageUrl = location.href) {
     authorNameKey: name ? normalizePerson(name) : null,
     authorPageUrl: pageUrl,
     authorBio: authorBio(doc),
-    authorWebsite: normalizeSite(details.website) || links.website || null,
+    // Measured against the page it was found on, so a link back into the same
+    // site is recognised as navigation rather than the author's own domain.
+    authorWebsite:
+      asAuthorWebsite(normalizeSite(details.website), pageUrl) ||
+      asAuthorWebsite(links.website, pageUrl) ||
+      null,
     authorEmail: links.emails[0] || null,
     authorEmails: links.emails,
     authorSocials: links.socials,

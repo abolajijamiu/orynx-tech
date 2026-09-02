@@ -27,6 +27,10 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "applica
 // Serve fixtures and the extension source from one origin, so the test page can
 // import the modules without cross-origin restrictions.
 let BASE = "";
+// The author's own website must sit on a different registrable domain from the
+// site hosting their profile, or the classifier correctly refuses to call it a
+// website. Same server, different host name.
+let SITE_BASE = "";
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);
   let name = url === "/" ? "index.html" : url;
@@ -50,13 +54,16 @@ const server = http.createServer((req, res) => {
     const type = MIME[path.extname(file)] || "text/plain";
     // Fixtures cannot know the port ahead of time, so they write __BASE__.
     const payload = type === "text/html"
-      ? Buffer.from(body.toString("utf8").split("__BASE__").join(BASE))
+      ? Buffer.from(
+          body.toString("utf8").split("__BASE__").join(BASE).split("__SITE__").join(SITE_BASE),
+        )
       : body;
     res.writeHead(200, { "Content-Type": type }).end(payload);
   });
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 BASE = `http://127.0.0.1:${server.address().port}`;
+SITE_BASE = `http://localhost:${server.address().port}`;
 
 let failures = 0;
 function check(label, condition, detail = "") {
@@ -85,6 +92,37 @@ const context = await chromium.launchPersistentContext(profile, {
   args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--no-sandbox"],
 });
 const page = await context.newPage();
+
+console.log("\nModule health");
+{
+  const modules = [
+    "shared/normalize.js", "shared/links.js", "shared/contacts.js", "shared/detail.js",
+    "shared/author.js", "shared/jsonld.js", "shared/meta.js", "shared/heuristics.js",
+    "shared/classify.js", "content/extract.js",
+  ];
+  // Imports resolve relative to a real origin, so load a page before probing.
+  await page.goto(`${BASE}/jsonld_book.html`, { waitUntil: "domcontentloaded" });
+  const failures = await page.evaluate(async ([base, names]) => {
+    const bad = [];
+    for (const name of names) {
+      try {
+        await import(`${base}/ext/src/${name}`);
+      } catch (error) {
+        bad.push(`${name}: ${error.message}`);
+      }
+    }
+    return bad;
+  }, [BASE, modules]);
+  // A duplicate import passes a syntax check and only fails when linked, so
+  // every module is actually loaded here.
+  check("every module loads", failures.length === 0, failures.join(" | "));
+
+  const workerSource = fs.readFileSync(
+    path.join(EXT, "src", "background", "service_worker.js"), "utf8");
+  check("service worker uses no dynamic import",
+        !/\bawait\s+import\s*\(/.test(workerSource),
+        "import() is disallowed in a service worker");
+}
 
 console.log("\nJSON-LD book page");
 {
@@ -548,7 +586,8 @@ console.log("\nSecond hop: follow the author's own site for an address");
       return response.records;
     });
     const book = saved[0] || {};
-    check("author site recorded", (book.authorWebsite || "").includes("/site"), book.authorWebsite);
+    check("author site recorded as a website, not a page",
+        (book.authorWebsite || "").includes("localhost"), book.authorWebsite);
     check("email found on the author's own site",
           book.email === "hello@amaranwosu.example", book.email);
     check("third-party inbox not taken", book.email !== "info@bigpublisher.com", book.email);
@@ -686,6 +725,33 @@ console.log("\nSite footer links are not the author's");
   check("an author's own profiles still come through",
         Boolean(detail[0]?.instagram && detail[0]?.tiktok),
         `${detail[0]?.instagram} / ${detail[0]?.tiktok}`);
+}
+
+console.log("\nAuthor page and author website are different columns");
+{
+  const records = await extractOn(page, "detail_book.html");
+  const r = records[0] || {};
+  check("website is the author's own domain",
+        r.authorWebsite === "https://amaranwosu.example", r.authorWebsite);
+  check("page and website are not the same value",
+        r.authorWebsite !== r.authorPageUrl, `${r.authorWebsite} / ${r.authorPageUrl}`);
+
+  const classify = await page.evaluate(async (base) => {
+    const { classifyAuthorLink } = await import(`${base}/ext/src/shared/links.js`);
+    const book = "https://www.goodreads.com/book/show/9";
+    return {
+      sameSiteProfile: classifyAuthorLink("https://www.goodreads.com/author/show/1.J", book),
+      ownDomain: classifyAuthorLink("https://jodipicoult.com", book),
+      social: classifyAuthorLink("https://www.instagram.com/jodipicoult", book),
+      platformProfile: classifyAuthorLink("https://www.amazon.com/author/jodi", book),
+    };
+  }, BASE);
+  check("a profile on the browsed site is a page", classify.sameSiteProfile === "page",
+        classify.sameSiteProfile);
+  check("an off-site domain is a website", classify.ownDomain === "website", classify.ownDomain);
+  check("a social profile is neither", classify.social === "social", classify.social);
+  check("a platform author profile is a page", classify.platformProfile === "page",
+        classify.platformProfile);
 }
 
 console.log("\nCSV shape");

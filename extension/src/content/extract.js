@@ -13,6 +13,7 @@ import { classifyPage, loadRegistry, pitchFor, scoreLead } from "../shared/class
 import { extractContacts, siteDomain } from "../shared/contacts.js";
 import { extractDetail } from "../shared/detail.js";
 import { extractAuthorProfile, looksLikeAuthorPage } from "../shared/author.js";
+import { asAuthorPage, asAuthorWebsite, classifyAuthorLink } from "../shared/links.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
 /**
@@ -158,11 +159,21 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
 
     const stats = detail?.statistics || {};
     const authorSocials = detail?.authorSocials || {};
+    const declaredAuthorLinks = (book.authors || []).map((a) => a.url).filter(Boolean);
+    const authorPageUrl =
+      declaredAuthorLinks.map((url) => asAuthorPage(url, pageUrl)).find(Boolean) || null;
+    const declaredWebsite =
+      declaredAuthorLinks.map((url) => asAuthorWebsite(url, pageUrl)).find(Boolean) || null;
+    // A social profile declared as the author's URL is still worth keeping.
+    const declaredSocial =
+      declaredAuthorLinks.find((url) => classifyAuthorLink(url, pageUrl) === "social") || null;
     const record = {
       bookName: book.title,
       originalTitle: detail?.originalTitle || null,
       author: (book.authors || []).map((a) => a.name).filter(Boolean).join("; "),
-      authorUrl: (book.authors || []).map((a) => a.url).filter(Boolean)[0] || null,
+      // schema.org author.url usually points back at the same site, so it is the
+      // author's page. Only an off-site, non-platform domain is their website.
+      authorUrl: authorPageUrl,
       series: detail?.series || null,
       edition: detail?.edition || null,
       awards: detail?.awards || null,
@@ -181,10 +192,10 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       // Only profiles found in an author context. A site's footer links are the
       // platform's own — writing Goodreads' LinkedIn into an author's row makes
       // the column look populated while being worse than empty for outreach.
-      linkedin: authorSocials.linkedin || null,
-      instagram: authorSocials.instagram || null,
-      twitter: authorSocials.twitter || null,
-      facebook: authorSocials.facebook || null,
+      linkedin: authorSocials.linkedin || pick(declaredSocial, "linkedin"),
+      instagram: authorSocials.instagram || pick(declaredSocial, "instagram"),
+      twitter: authorSocials.twitter || pick(declaredSocial, "twitter"),
+      facebook: authorSocials.facebook || pick(declaredSocial, "facebook"),
       tiktok: authorSocials.tiktok || null,
       youtube: authorSocials.youtube || null,
       substack: authorSocials.substack || null,
@@ -192,7 +203,9 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       // clearly not the author's.
       siteSocials: Object.entries(contacts.socials || {})
         .map(([network, url]) => `${network}=${url}`).join(" ; ") || null,
-      authorWebsite: detail?.authorWebsite || (book.authors || [])[0]?.url || null,
+      authorWebsite:
+        asAuthorWebsite(detail?.authorWebsite, pageUrl) || declaredWebsite || null,
+      authorPageUrl,
       authorBio: detail?.authorBio || null,
       topReviews: (detail?.reviews || [])
         .map((review) => (review.rating ? `[${review.rating}/5] ${review.text}` : review.text))
@@ -410,4 +423,12 @@ export function collectAuthorLinks(records, { sameOriginAs = null } = {}) {
     links.push({ url: clean, title: record.author || clean, author: record.author || null });
   }
   return links;
+}
+
+
+/** Return `url` when it belongs to `network`, so one declared link lands once. */
+function pick(url, network) {
+  if (!url) return null;
+  const alternates = network === "twitter" ? ["twitter.", "x.com"] : [`${network}.`];
+  return alternates.some((fragment) => url.toLowerCase().includes(fragment)) ? url : null;
 }

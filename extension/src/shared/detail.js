@@ -8,6 +8,7 @@
  */
 
 import { cleanText, parseCount, readableText, toNumber } from "./normalize.js";
+import { isPlatformHost, isSameSite } from "./links.js";
 
 // Labels sites print beside a value, mapped to our field names. Matching is on
 // the normalised label, so "Original Title:" and "original title" both hit.
@@ -57,9 +58,6 @@ const SOCIAL_PATTERNS = {
   patreon: /https?:\/\/(?:www\.)?patreon\.com\/[A-Za-z0-9_\-]+/i,
 };
 
-// Hosts that are never an author's own site, so they must not be recorded as one.
-const NOT_A_PERSONAL_SITE =
-  /(goodreads|amazon|facebook|instagram|twitter|x\.com|tiktok|linkedin|youtube|pinterest|wikipedia|barnesandnoble|bookshop\.org|kobo|apple\.com|google\.)/i;
 
 function normalizeLabel(text) {
   return String(text || "").toLowerCase().replace(/[:\s]+$/g, "").replace(/\s+/g, " ").trim();
@@ -185,9 +183,12 @@ export function authorLinks(doc = document, scope = null) {
   }
 
   let website = null;
+  const pageUrl = doc.location?.href || "";
   for (const href of hrefs) {
     if (!/^https?:\/\//i.test(href)) continue;
-    if (NOT_A_PERSONAL_SITE.test(href)) continue;
+    if (isPlatformHost(href)) continue;
+    // A link back into the same site is navigation, not the author's own site.
+    if (pageUrl && isSameSite(href, pageUrl)) continue;
     website = href;
     break;
   }

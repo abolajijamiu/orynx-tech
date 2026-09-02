@@ -171,6 +171,13 @@ or "match all". That is the question that decides whether a page is worth saving
 a lead you cannot reach is not a lead. The author's website filter matters most,
 since a site is what the later hops turn into an address.
 
+**Author page and author website are different columns.** The page is their
+profile on the site you are browsing — a catalogue's author listing, a Goodreads
+profile. The website is their own domain, and it is the one the later hops turn
+into an address. schema.org markup routinely publishes `author.url` pointing back
+at the same site, which is why the two used to hold the same value; a URL is now
+classified by where it points before it is filed.
+
 **A social link is only recorded as the author's when it was found in an author
 context** — their page, or the about-the-author block on a book page. A site's
 footer profiles belong to the platform, and filing Goodreads' own LinkedIn under
