@@ -12,6 +12,7 @@ import { extractMetaBook, extractMicrodataBooks } from "../shared/meta.js";
 import { classifyPage, loadRegistry, pitchFor, scoreLead } from "../shared/classify.js";
 import { extractContacts, siteDomain } from "../shared/contacts.js";
 import { extractDetail } from "../shared/detail.js";
+import { extractAuthorProfile, looksLikeAuthorPage } from "../shared/author.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
 export const COLUMNS = [
@@ -33,6 +34,7 @@ export const COLUMNS = [
   "moreEditionsUrl",
   // Content for the outreach step
   "description", "authorBio", "topReviews",
+  "authorPageUrl", "authorBorn", "authorLocation", "authorGenres", "authorBookCount",
   // Qualification and provenance
   "services", "idealPitch", "priority", "tier", "coverUrl", "extractedBy",
   "isDetailPage", "capturedAt",
@@ -300,6 +302,44 @@ export function collectBookLinks(doc = document, pageUrl = location.href) {
     if (seen.has(clean)) continue;
     seen.add(clean);
     links.push({ url: clean, title: record.bookName, author: record.author || null });
+  }
+  return links;
+}
+
+
+/** The author profile for this page, when the page is about an author. */
+export function extractAuthor(doc = document, pageUrl = location.href) {
+  if (!looksLikeAuthorPage(doc, pageUrl)) return null;
+  const profile = extractAuthorProfile(doc, pageUrl);
+  // A profile with neither a name nor anything to reach them by is not worth saving.
+  if (!profile.authorName) return null;
+  return profile;
+}
+
+/**
+ * Distinct author pages worth visiting, from records already collected.
+ *
+ * One visit per author, not per book: an author with six titles has one page,
+ * and fetching it six times would be both slower and ruder.
+ */
+export function collectAuthorLinks(records, { sameOriginAs = null } = {}) {
+  const seen = new Set();
+  const links = [];
+  for (const record of records || []) {
+    const href = record.authorUrl;
+    if (!href) continue;
+    let url;
+    try {
+      url = new URL(href);
+    } catch {
+      continue;
+    }
+    if (!/^https?:$/.test(url.protocol)) continue;
+    if (sameOriginAs && url.origin !== sameOriginAs) continue;
+    const clean = url.origin + url.pathname;
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    links.push({ url: clean, title: record.author || clean, author: record.author || null });
   }
   return links;
 }

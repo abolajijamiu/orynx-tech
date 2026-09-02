@@ -93,6 +93,21 @@ single worker looks like someone reading, and it can be interrupted.
 Re-visiting a book already in the library does not duplicate it — the detail page
 fills in the blanks on the row the listing created.
 
+## The author hop
+
+**Authors** works through the library rather than the current page: one visit per
+author, however many of their books you have saved. It reads the author's page —
+name, biography, own website, published address, socials, where they were born,
+what they write, how many books — and writes all of it onto every book credited
+to them, filling gaps rather than overwriting.
+
+Where the author names their own website, that is opened too. This is the step
+that actually produces addresses: a catalogue almost never publishes one, and an
+author's own contact page usually does. It is skipped when an address was already
+found, and never follows a social profile in place of a site.
+
+Run it after visiting book pages, since that is where author links come from.
+
 ## What a detail page yields
 
 Beyond the basics: original title, edition, series, awards, expected publication,

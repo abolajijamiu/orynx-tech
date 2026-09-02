@@ -6,7 +6,8 @@
  * whether the records carry a usable contact route.
  */
 
-import { COLUMNS, collectBookLinks, diagnosePage, extractPage, matchesFilter } from "./extract.js";
+import { COLUMNS, collectAuthorLinks, collectBookLinks, diagnosePage, extractAuthor, extractPage, matchesFilter } from "./extract.js";
+import { extractContacts } from "../shared/contacts.js";
 
 const CHANNELS = [
   { key: "email", label: "Email" },
@@ -151,6 +152,7 @@ function buildUi() {
       </div>
       <div class="orynx-foot">
         <button class="orynx-btn wide primary" id="orynx-crawl">Visit each book and save</button>
+        <button class="orynx-btn" id="orynx-authors" title="Visit each author's page for bio, site and contacts">Authors</button>
         <button class="orynx-btn" id="orynx-stop" hidden>Stop</button>
       </div>
     </div>`;
@@ -230,6 +232,27 @@ function buildUi() {
     showProgress(`Starting on ${links.length} book page(s)…`);
   });
 
+  root.querySelector("#orynx-authors").addEventListener("click", async () => {
+    // Authors come from the whole library, not just this page: the point is to
+    // enrich everything collected so far, and one author covers many books.
+    const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+    const links = collectAuthorLinks(response?.records || []);
+    if (!links.length) {
+      showProgress("No author pages found. Visit some book pages first — that is where author links come from.");
+      return;
+    }
+    const proceed = confirm(
+      `Visit ${links.length} author page(s) and fill in bio, website and contacts?\n\n` +
+      "Each author is visited once, however many of their books you have saved. " +
+      "Where an author names their own website, that is opened too, since a " +
+      "published email address is rarely anywhere else.",
+    );
+    if (!proceed) return;
+    await chrome.runtime.sendMessage({ type: "orynx:queue:start", mode: "authors", links });
+    root.querySelector("#orynx-stop").hidden = false;
+    showProgress(`Starting on ${links.length} author page(s)…`);
+  });
+
   root.querySelector("#orynx-stop").addEventListener("click", async () => {
     await chrome.runtime.sendMessage({ type: "orynx:queue:stop" });
     showProgress("Stopping after the current page…");
@@ -282,15 +305,16 @@ export async function init() {
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message?.type === "orynx:queue:progress") {
       const state = message.state || {};
+      const noun = state.mode === "authors" ? "author page" : "book page";
       if (state.running) {
         showProgress(
-          `${state.done}/${state.total} visited · ${state.saved} saved` +
+          `${state.done}/${state.total} ${noun}s visited · ${state.saved} updated` +
           (state.failed ? ` · ${state.failed} failed` : "") +
           (state.current ? ` · reading ${String(state.current).slice(0, 40)}` : ""),
         );
       } else {
         showProgress(
-          `Finished: ${state.done}/${state.total} visited, ${state.saved} saved` +
+          `Finished: ${state.done}/${state.total} ${noun}s visited, ${state.saved} record(s) updated` +
           (state.failed ? `, ${state.failed} failed` : "") + ".",
         );
         if (root) root.querySelector("#orynx-stop").hidden = true;
@@ -302,6 +326,14 @@ export async function init() {
     }
     if (message?.type === "orynx:records") {
       respond({ ok: true, count: records.length, records });
+    }
+    if (message?.type === "orynx:author") {
+      respond({ ok: true, profile: extractAuthor(document, location.href) });
+    }
+    if (message?.type === "orynx:contacts") {
+      // An author's own website is rarely a book page, so asking for book
+      // records there returns nothing. Contacts are what that visit is for.
+      respond({ ok: true, contacts: extractContacts(document, location.href) });
     }
     return true;
   });

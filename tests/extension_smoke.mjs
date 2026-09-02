@@ -26,6 +26,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "applica
 
 // Serve fixtures and the extension source from one origin, so the test page can
 // import the modules without cross-origin restrictions.
+let BASE = "";
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);
   let name = url === "/" ? "index.html" : url;
@@ -34,17 +35,25 @@ const server = http.createServer((req, res) => {
     const slug = name.slice(6).replace(/\/$/, "");
     name = slug === "hollow-bones" ? "/detail_book.html" : `/${slug}.html`;
   }
+  if (name === "/author/marta-oyelaran") name = "/author_page_local.html";
+  else if (name.startsWith("/author/")) name = "/author_page.html";
+  if (name === "/site") name = "/author_site.html";
   const file = url.startsWith("/ext/")
     ? path.join(EXT, url.slice(5))
     : path.join(PAGES, name);
   if (!file.startsWith(EXT) && !file.startsWith(PAGES)) { res.writeHead(403).end(); return; }
   fs.readFile(file, (error, body) => {
     if (error) { res.writeHead(404).end("not found"); return; }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "text/plain" }).end(body);
+    const type = MIME[path.extname(file)] || "text/plain";
+    // Fixtures cannot know the port ahead of time, so they write __BASE__.
+    const payload = type === "text/html"
+      ? Buffer.from(body.toString("utf8").split("__BASE__").join(BASE))
+      : body;
+    res.writeHead(200, { "Content-Type": type }).end(payload);
   });
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const BASE = `http://127.0.0.1:${server.address().port}`;
+BASE = `http://127.0.0.1:${server.address().port}`;
 
 let failures = 0;
 function check(label, condition, detail = "") {
@@ -396,6 +405,139 @@ console.log("\nQueue: visit each book link and save it");
     check("review content saved", (hollow.topReviews || "").length > 40);
     check("background tabs were closed", (await context.pages()).length <= 3,
           String((await context.pages()).length));
+
+    await driver.close();
+  }
+}
+
+console.log("\nAuthor page extraction");
+{
+  await page.goto(`${BASE}/author/amara-nwosu`, { waitUntil: "domcontentloaded" });
+  await page.addScriptTag({
+    type: "module",
+    content: `
+      import { extractAuthor } from "${BASE}/ext/src/content/extract.js";
+      window.__profile = extractAuthor(document, location.href);
+      window.__ready3 = true;`,
+  });
+  await page.waitForFunction(() => window.__ready3 === true, null, { timeout: 10000 });
+  const profile = await page.evaluate(() => window.__profile);
+
+  check("recognised as an author page", Boolean(profile), JSON.stringify(profile));
+  check("name without the trailing parenthetical", profile?.authorName === "Amara Nwosu",
+        profile?.authorName);
+  check("bio", (profile?.authorBio || "").includes("Nigerian novelist"),
+        (profile?.authorBio || "").slice(0, 40));
+  check("own website from the labelled field", profile?.authorWebsite === "https://amaranwosu.example",
+        profile?.authorWebsite);
+  check("born", profile?.authorBorn === "Enugu, Nigeria", profile?.authorBorn);
+  check("genres", (profile?.authorGenres || "").includes("Literary Fiction"), profile?.authorGenres);
+  check("socials", Boolean(profile?.authorSocials?.tiktok && profile?.authorSocials?.linkedin),
+        JSON.stringify(profile?.authorSocials));
+  check("book count", profile?.authorBookCount === 3, String(profile?.authorBookCount));
+}
+
+console.log("\nAuthor hop: enrich saved books from the author page");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  if (!extensionId) {
+    check("service worker available for the author run", false);
+  } else {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+    await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+    // A saved book with an author link but nothing about the author.
+    await driver.evaluate((record) =>
+      chrome.runtime.sendMessage({ type: "orynx:save", records: [record] }),
+      {
+        bookName: "Hollow Bones", author: "Amara Nwosu", isbn: "9781234567897",
+        authorUrl: `${BASE}/author/amara-nwosu`, email: "", authorBio: null,
+        authorWebsite: null, tiktok: null, linkedin: null,
+      },
+    );
+
+    await driver.evaluate((queue) => chrome.runtime.sendMessage({
+      type: "orynx:queue:start", mode: "authors", links: queue,
+      options: { delayMs: 200, settleMs: 300, followAuthorWebsite: false },
+    }), [{ url: `${BASE}/author/amara-nwosu`, title: "Amara Nwosu", author: "Amara Nwosu" }]);
+
+    let finished = null;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const status = await driver.evaluate(() =>
+        chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+      if (status?.state && !status.state.running && status.state.done > 0) {
+        finished = status.state;
+        break;
+      }
+    }
+    check("author run completed", finished?.done === 1, JSON.stringify(finished));
+    check("a record was updated", finished?.saved === 1, JSON.stringify(finished));
+
+    const saved = await driver.evaluate(async () => {
+      const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+      return response.records;
+    });
+    check("still one book, not a duplicate", saved.length === 1,
+          saved.map((r) => r.bookName).join(" | "));
+    const book = saved[0] || {};
+    check("bio written onto the book", (book.authorBio || "").includes("Nigerian novelist"),
+          (book.authorBio || "").slice(0, 40));
+    check("author website written on", book.authorWebsite === "https://amaranwosu.example",
+          book.authorWebsite);
+    check("socials written on", Boolean(book.tiktok && book.linkedin),
+          `${book.tiktok} / ${book.linkedin}`);
+    check("author page recorded for provenance",
+          (book.authorPageUrl || "").includes("/author/"), book.authorPageUrl);
+
+    await driver.close();
+  }
+}
+
+console.log("\nSecond hop: follow the author's own site for an address");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  if (!extensionId) {
+    check("service worker available for the second hop", false);
+  } else {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+    await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+    await driver.evaluate((record) =>
+      chrome.runtime.sendMessage({ type: "orynx:save", records: [record] }),
+      {
+        bookName: "Red Umbrellas", author: "Marta Oyelaran", isbn: "9789998887776",
+        authorUrl: `${BASE}/author/marta-oyelaran`, email: "", authorWebsite: null,
+      },
+    );
+
+    await driver.evaluate((queue) => chrome.runtime.sendMessage({
+      type: "orynx:queue:start", mode: "authors", links: queue,
+      options: { delayMs: 200, settleMs: 300, followAuthorWebsite: true },
+    }), [{ url: `${BASE}/author/marta-oyelaran`, title: "Marta Oyelaran", author: "Marta Oyelaran" }]);
+
+    let done = false;
+    for (let attempt = 0; attempt < 30 && !done; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const status = await driver.evaluate(() =>
+        chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+      done = Boolean(status?.state && !status.state.running && status.state.done > 0);
+    }
+    check("second hop finished", done);
+
+    const saved = await driver.evaluate(async () => {
+      const response = await chrome.runtime.sendMessage({ type: "orynx:list" });
+      return response.records;
+    });
+    const book = saved[0] || {};
+    check("author site recorded", (book.authorWebsite || "").includes("/site"), book.authorWebsite);
+    check("email found on the author's own site",
+          book.email === "hello@amaranwosu.example", book.email);
+    check("third-party inbox not taken", book.email !== "info@bigpublisher.com", book.email);
 
     await driver.close();
   }

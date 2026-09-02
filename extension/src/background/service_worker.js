@@ -16,7 +16,14 @@ const DEFAULTS = {
   settleMs: 1200,     // let late-rendering content arrive before asking
   loadTimeoutMs: 30000,
   closeTabs: true,
+  // After an author page names the author's own site, visit it too: that is
+  // where a published address is most often found, and rarely anywhere else.
+  followAuthorWebsite: true,
 };
+
+// Hosts that are somebody's profile, not an author's own website.
+const NOT_A_PERSONAL_SITE =
+  /(goodreads|amazon|facebook|instagram|twitter|x\.com|tiktok|linkedin|youtube|pinterest|wikipedia|barnesandnoble|bookshop\.org|kobo|apple\.com|google\.|substack\.com)/i;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -98,12 +105,12 @@ function waitForComplete(tabId, timeoutMs) {
   });
 }
 
-/** Ask the content script for its records, allowing for a slow start. */
-async function askForRecords(tabId, attempts = 5, gapMs = 700) {
+/** Ask the content script something, allowing for a slow start. */
+async function ask(tabId, message, attempts = 5, gapMs = 700) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const response = await chrome.tabs.sendMessage(tabId, { type: "orynx:records" });
-      if (response?.ok) return response.records || [];
+      const response = await chrome.tabs.sendMessage(tabId, message);
+      if (response?.ok) return response;
     } catch {
       // Content script not ready yet, or the page disallows injection.
     }
@@ -112,28 +119,135 @@ async function askForRecords(tabId, attempts = 5, gapMs = 700) {
   return null;
 }
 
-async function processLink(link, options) {
+async function askForRecords(tabId) {
+  const response = await ask(tabId, { type: "orynx:records" });
+  return response ? response.records || [] : null;
+}
+
+/** Open a page, run `read` against its tab, and always clean the tab up. */
+async function withTab(url, options, read) {
   let tab = null;
   try {
-    tab = await chrome.tabs.create({ url: link.url, active: false });
+    tab = await chrome.tabs.create({ url, active: false });
     await waitForComplete(tab.id, options.loadTimeoutMs);
     await sleep(options.settleMs);
-    const records = await askForRecords(tab.id);
+    return await read(tab.id);
+  } finally {
+    if (tab?.id && options.closeTabs) await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+async function processLink(link, options) {
+  return withTab(link.url, options, async (tabId) => {
+    const records = await askForRecords(tabId);
     if (records === null) throw new Error("no response from the page");
     if (!records.length) return 0;
     const result = await saveRecords(records);
     return result.added + result.enriched;
-  } finally {
-    if (tab?.id && options.closeTabs) {
-      await chrome.tabs.remove(tab.id).catch(() => {});
-    }
-  }
+  });
 }
 
-async function runQueue(links, overrides = {}) {
+/**
+ * Read an author page, optionally follow the author's own site for an address,
+ * then write what was learned onto every book by that author.
+ */
+async function processAuthor(link, options) {
+  const profile = await withTab(link.url, options, async (tabId) => {
+    const response = await ask(tabId, { type: "orynx:author" });
+    if (!response) throw new Error("no response from the author page");
+    return response.profile;
+  });
+  if (!profile) return 0;
+
+  if (options.followAuthorWebsite && profile.authorWebsite && !profile.authorEmail) {
+    const site = profile.authorWebsite;
+    if (/^https?:\/\//i.test(site) && !NOT_A_PERSONAL_SITE.test(site)) {
+      try {
+        const found = await withTab(site, options, async (tabId) => {
+          const response = await ask(tabId, { type: "orynx:contacts" }, 4, 600);
+          const contacts = response?.contacts;
+          if (!contacts) return null;
+          return {
+            email: (contacts.emails || [])[0]?.value || null,
+            socials: contacts.socials || {},
+          };
+        });
+        if (found?.email) profile.authorEmail = found.email;
+        // Their own site often lists profiles the catalogue page did not.
+        for (const [network, url] of Object.entries(found?.socials || {})) {
+          if (!profile.authorSocials[network]) profile.authorSocials[network] = url;
+        }
+      } catch {
+        // An unreachable personal site is not a failure of the author page.
+      }
+    }
+  }
+
+  return applyProfileToLibrary(profile, link.author);
+}
+
+/** Fill gaps on every stored book credited to this author. */
+async function applyProfileToLibrary(profile, fallbackName) {
+  const stored = (await chrome.storage.local.get(KEY))[KEY] || [];
+  const target = profile.authorNameKey || normalizeName(fallbackName);
+  let updated = 0;
+
+  const next = stored.map((record) => {
+    const matchesUrl =
+      record.authorUrl && profile.authorPageUrl &&
+      record.authorUrl.split("?")[0] === profile.authorPageUrl.split("?")[0];
+    const matchesName = target && normalizeName(record.author) === target;
+    if (!matchesUrl && !matchesName) return record;
+    const merged = applyProfile(record, profile);
+    if (merged !== record) updated += 1;
+    return merged;
+  });
+
+  if (updated) await chrome.storage.local.set({ [KEY]: next });
+  return updated;
+}
+
+/** Kept in step with normalizePerson in the shared module. */
+function normalizeName(name) {
+  if (!name) return "";
+  let text = String(name).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim();
+  text = text.replace(/,?\s*\b(phd|ph\.d|md|jr|sr|ii|iii|iv|esq|mba)\b\.?$/i, "");
+  if (text.includes(",")) {
+    const [family, ...rest] = text.split(",");
+    text = `${rest.join(",").trim()} ${family.trim()}`;
+  }
+  return text.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** Gap-filling merge; returns the original object when nothing changed. */
+function applyProfile(record, profile) {
+  const updates = {
+    authorBio: profile.authorBio,
+    authorWebsite: profile.authorWebsite,
+    email: profile.authorEmail,
+    authorPageUrl: profile.authorPageUrl,
+    authorBorn: profile.authorBorn,
+    authorLocation: profile.authorLocation,
+    authorGenres: profile.authorGenres,
+    authorBookCount: profile.authorBookCount,
+    ...(profile.authorSocials || {}),
+  };
+  let changed = false;
+  const merged = { ...record };
+  for (const [field, value] of Object.entries(updates)) {
+    if (!value) continue;
+    if (merged[field] === null || merged[field] === undefined || merged[field] === "") {
+      merged[field] = value;
+      changed = true;
+    }
+  }
+  return changed ? merged : record;
+}
+
+async function runQueue(links, overrides = {}, mode = "books") {
   const options = { ...DEFAULTS, ...overrides };
   queueState = {
-    running: true, stopRequested: false, total: links.length,
+    running: true, stopRequested: false, mode, total: links.length,
     done: 0, saved: 0, failed: 0, current: null, errors: [],
   };
   await publishState();
@@ -144,7 +258,8 @@ async function runQueue(links, overrides = {}) {
     await publishState();
 
     try {
-      queueState.saved += await processLink(link, options);
+      queueState.saved +=
+        mode === "authors" ? await processAuthor(link, options) : await processLink(link, options);
     } catch (error) {
       queueState.failed += 1;
       if (queueState.errors.length < 10) {
@@ -187,7 +302,7 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     }
     // Answer immediately; the run reports progress as it goes.
     respond({ ok: true, total: (message.links || []).length });
-    runQueue(message.links || [], message.options || {});
+    runQueue(message.links || [], message.options || {}, message.mode || "books");
     return true;
   }
   if (message?.type === "orynx:queue:stop") {
