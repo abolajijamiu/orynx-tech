@@ -12,8 +12,10 @@ const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 
 // Deliberately strict: a loose phone pattern matches ISBNs, prices and dates.
 // Requires either an international prefix or conventional separators.
+// The final group runs to six digits: a UK number is "+44 1223 370012", and
+// stopping at four silently truncates it to something undiallable.
 const PHONE_RE =
-  /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)[\s.-]?)?\d{3,4}[\s.-]\d{3,4}(?:[\s.-]\d{2,4})?/g;
+  /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)[\s.-]?)?\d{3,4}[\s.-]\d{3,6}(?:[\s.-]\d{2,4})?/g;
 
 const SOCIAL_PATTERNS = {
   linkedin: /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(?:in|company)\/[A-Za-z0-9\-_%.]+/i,

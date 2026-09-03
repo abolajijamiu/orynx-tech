@@ -210,8 +210,11 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       topReviews: (detail?.reviews || [])
         .map((review) => (review.rating ? `[${review.rating}/5] ${review.text}` : review.text))
         .join(" || ") || null,
-      phone: contacts.phones[0] || null,
-      allPhones: contacts.phones,
+      // Author-scoped, like email and socials. A number in a page footer is the
+      // publisher's switchboard; putting it in an author column makes every row
+      // look contactable while pointing at the same receptionist.
+      phone: null,
+      pagePhones: contacts.phones.join(" ; ") || null,
       whatsapp: contacts.whatsapp[0] || null,
       services: (classification.services || []).join("; "),
       publishDate:

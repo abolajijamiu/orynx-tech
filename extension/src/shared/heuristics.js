@@ -71,11 +71,24 @@ const AUTHOR_SELECTORS = [
 const JOB_WORDS =
   /\b(partner|manager|director|head|officer|ceo|cto|coo|cfo|founder|consultant|engineer|designer|analyst|assistant|associate|executive|president|chair|lead|specialist|coordinator|administrator)\b/i;
 
+// Headings of navigation and sidebar widgets. These sit beside cover links and
+// otherwise read as a card with a title, which is how "Categories" became a book.
 const NAV_WORDS = new Set([
   "home", "books", "authors", "about", "about us", "contact", "submissions",
   "features", "login", "sign up", "cart", "search", "menu", "shop", "blog",
   "news", "fiction", "non-fiction", "more", "next", "previous", "read more",
+  "categories", "category", "filter", "filter by", "sort", "sort by", "browse",
+  "tags", "archives", "recent posts", "newsletter", "follow us", "useful links",
+  "quick links", "related", "related books", "you may also like", "bestsellers",
+  "new releases", "coming soon", "genres", "subjects", "series", "publishers",
+  "price", "sale", "offers", "basket", "wishlist", "account", "help", "faq",
 ]);
+
+// "Title By Author" as one string, which happens when a card's link wraps both.
+// The name test is deliberately strict: "Death by Water" and "Betrayed by My
+// Best Friend" are titles, not bylines.
+const TITLE_BYLINE_RE = /^(.{3,})\s+by\s+(.{3,60})$/i;
+const NOT_A_NAME_WORD = /\b(my|his|her|their|our|your|the|a|an|this|that|these|those)\b/i;
 
 function textOf(node) {
   return readableText(node);
@@ -267,6 +280,16 @@ export function bookFromNode(node, pageUrl, bookContext = false) {
   if (!title) title = titleFromMedia(node);
   if (!title) return null;
 
+  // Some sites print "Title By Author" as a single line. When no author was
+  // found any other way, and the tail is convincingly a person, split them.
+  if (!author) {
+    const split = title.match(TITLE_BYLINE_RE);
+    if (split && !NOT_A_NAME_WORD.test(split[2]) && looksLikePersonName(split[2])) {
+      title = split[1].replace(/[\s\-–—:,]+$/, "");
+      author = split[2];
+    }
+  }
+
   const isbnMatch = text.match(ISBN_RE);
   const priceMatch = text.match(PRICE_RE);
   const image = node.querySelector("img[src], img[data-src], img[srcset]");
@@ -348,6 +371,7 @@ function cardsBySelector(doc) {
   // its parent loses the card holding the author.
   return nodes.filter(
     (node) =>
+      !inFurniture(node) &&
       !isRowContainer(node) &&
       ![...node.querySelectorAll(selector)].some((child) => child.querySelector("img")),
   );
@@ -357,10 +381,21 @@ function cardsBySelector(doc) {
  * Cards found by structure, for sites whose class names give nothing away.
  * Walks up from each book-shaped link to the smallest ancestor holding a cover.
  */
+// Page furniture. A category tile in a sidebar looks exactly like a book card —
+// a link with an image under a heading — so the surroundings have to rule it out.
+const FURNITURE = "nav, aside, footer, header, [role='navigation'], [role='banner'], "
+  + "[class*='widget' i], [class*='sidebar' i], [class*='side-bar' i], [class*='menu' i], "
+  + "[class*='breadcrumb' i], [class*='pagination' i], [class*='filter' i]";
+
+function inFurniture(node) {
+  return Boolean(node.closest && node.closest(FURNITURE));
+}
+
 function cardsByLink(doc) {
   const found = new Set();
   for (const link of doc.querySelectorAll("a[href]")) {
     if (!BOOK_LINK_RE.test(link.getAttribute("href") || "")) continue;
+    if (inFurniture(link)) continue;
     // A link wrapping its own cover is the card only when nothing around it adds
     // text — the pure cover grid, where walking up would swallow the whole row
     // and collapse many books into one. Where the container also holds a title

@@ -143,7 +143,8 @@ console.log("\nJSON-LD book page");
   check("page address is not the author's", !r.email, String(r.email));
   check("page address still captured",
         (r.pageEmails || "").includes("hello@demopress.example"), r.pageEmails);
-  check("phone", (r.phone || "").includes("212"), r.phone);
+  check("page phone is not the author's", !r.phone, String(r.phone));
+  check("page phone still captured", (r.pagePhones || "").includes("212"), r.pagePhones);
   check("whatsapp from wa.me", r.whatsapp === "+2348012345678", r.whatsapp);
   check("publisher company page is not the author's LinkedIn", !r.linkedin, String(r.linkedin));
   check("the site's own profiles are recorded separately",
@@ -752,6 +753,31 @@ console.log("\nAuthor page and author website are different columns");
   check("a social profile is neither", classify.social === "social", classify.social);
   check("a platform author profile is a page", classify.platformProfile === "page",
         classify.platformProfile);
+}
+
+console.log("\nPublisher listing with bylines inside titles");
+{
+  const records = await extractOn(page, "pegasus_style.html");
+  const byTitle = Object.fromEntries(records.map((r) => [r.bookName, r.author]));
+  const titles = Object.keys(byTitle);
+
+  check("sidebar widget heading is not a book", !titles.includes("Categories"),
+        titles.join(" | "));
+  check("byline split out of the title",
+        byTitle["Maime's Tales - Journal One"] === "Aimee Cooper",
+        JSON.stringify(byTitle));
+  check("second byline split", byTitle["Nazi Dystopia II"] === "Simone Opie",
+        byTitle["Nazi Dystopia II"]);
+  check("author in a separate element still read",
+        byTitle["Camille Monfort: Shadows of the Heart"] === "Dean Spencer",
+        byTitle["Camille Monfort: Shadows of the Heart"]);
+  check("a title containing 'by' is left intact",
+        Object.prototype.hasOwnProperty.call(byTitle, "Death by Water"), titles.join(" | "));
+
+  const first = records[0] || {};
+  check("publisher switchboard is not the author's phone", !first.phone, String(first.phone));
+  check("but it is still captured", (first.pagePhones || "").includes("370012"), first.pagePhones);
+  check("publisher facebook is not the author's", !first.facebook, String(first.facebook));
 }
 
 console.log("\nCSV shape");
