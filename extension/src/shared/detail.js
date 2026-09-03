@@ -253,6 +253,7 @@ export function extractDetail(doc = document, pageUrl = "") {
   const reviews = communityReviews(doc);
 
   return {
+    availableOn: availablePlatforms(doc, pageUrl),
     originalTitle: fields.originalTitle || null,
     edition: fields.edition || null,
     series: fields.series || null,
@@ -273,4 +274,82 @@ export function extractDetail(doc = document, pageUrl = "") {
     reviews,
     moreEditionsUrl: moreEditionsUrl(doc, pageUrl),
   };
+}
+
+// Retailers and reading platforms, by host. A book page usually links to
+// wherever it can be bought, and that list says a lot about how a title is
+// being distributed — a single Amazon link reads very differently from a spread
+// across ten stores.
+const STORE_HOSTS = [
+  [/(^|\.)amazon\./i, "Amazon"],
+  [/(^|\.)audible\./i, "Audible"],
+  [/(^|\.)barnesandnoble\.com/i, "Barnes & Noble"],
+  [/(^|\.)bn\.com/i, "Barnes & Noble"],
+  [/(^|\.)kobo\.com/i, "Kobo"],
+  [/books\.apple\.com|itunes\.apple\.com/i, "Apple Books"],
+  [/play\.google\.com\/store\/books/i, "Google Play Books"],
+  [/(^|\.)bookshop\.org/i, "Bookshop.org"],
+  [/(^|\.)waterstones\.com/i, "Waterstones"],
+  [/(^|\.)blackwells\.co\.uk/i, "Blackwell's"],
+  [/(^|\.)foyles\.co\.uk/i, "Foyles"],
+  [/(^|\.)whsmith\.co\.uk/i, "WHSmith"],
+  [/(^|\.)wordery\.com/i, "Wordery"],
+  [/(^|\.)hive\.co\.uk/i, "Hive"],
+  [/(^|\.)booktopia\.com/i, "Booktopia"],
+  [/(^|\.)booksamillion\.com/i, "Books-A-Million"],
+  [/(^|\.)thriftbooks\.com/i, "ThriftBooks"],
+  [/(^|\.)indiebound\.org/i, "IndieBound"],
+  [/(^|\.)libro\.fm/i, "Libro.fm"],
+  [/(^|\.)scribd\.com|(^|\.)everand\.com/i, "Scribd/Everand"],
+  [/(^|\.)smashwords\.com/i, "Smashwords"],
+  [/(^|\.)goodreads\.com/i, "Goodreads"],
+  [/(^|\.)librarything\.com/i, "LibraryThing"],
+  [/(^|\.)storygraph\.com|app\.thestorygraph\.com/i, "StoryGraph"],
+  [/(^|\.)netgalley\.com/i, "NetGalley"],
+  [/(^|\.)wattpad\.com/i, "Wattpad"],
+  [/(^|\.)lulu\.com/i, "Lulu"],
+  [/(^|\.)ingramspark\.com/i, "IngramSpark"],
+  [/(^|\.)draft2digital\.com|books2read\.com/i, "Draft2Digital"],
+  [/(^|\.)target\.com/i, "Target"],
+  [/(^|\.)walmart\.com/i, "Walmart"],
+  [/(^|\.)waterstones\.com/i, "Waterstones"],
+];
+
+/**
+ * Where this book can be had.
+ *
+ * Read from the outbound links a book page publishes, which is how a page shows
+ * its buy buttons. The site being browsed is listed first, since it is itself a
+ * platform the book appears on.
+ */
+export function availablePlatforms(doc = document, pageUrl = "") {
+  const found = [];
+  const add = (name) => {
+    if (name && !found.includes(name)) found.push(name);
+  };
+
+  // The page you are on counts.
+  try {
+    const host = new URL(pageUrl).hostname;
+    const known = STORE_HOSTS.find(([pattern]) => pattern.test(host));
+    if (known) add(known[1]);
+    else {
+      const label = doc.querySelector('meta[property="og:site_name"]')?.getAttribute("content");
+      add(cleanText(label));
+    }
+  } catch { /* a malformed page URL is not worth failing over */ }
+
+  for (const link of doc.querySelectorAll("a[href]")) {
+    const href = link.getAttribute("href") || "";
+    if (!/^https?:\/\//i.test(href)) continue;
+    let host;
+    try {
+      host = new URL(href).hostname;
+    } catch {
+      continue;
+    }
+    const match = STORE_HOSTS.find(([pattern]) => pattern.test(host) || pattern.test(href));
+    if (match) add(match[1]);
+  }
+  return found;
 }

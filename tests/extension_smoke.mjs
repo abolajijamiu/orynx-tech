@@ -345,6 +345,13 @@ console.log("\nBook detail page (deep extraction)");
   check("review text captured", (r.topReviews || "").includes("devastating"), (r.topReviews || "").slice(0, 40));
   check("review rating kept", (r.topReviews || "").includes("[5/5]"), (r.topReviews || "").slice(0, 20));
   check("AI columns present and empty", r.found_email === "" && r.outreach_message === "");
+  check("stores the book is available on",
+        (r.availableOn || "").includes("Amazon") &&
+        (r.availableOn || "").includes("Kobo") &&
+        (r.availableOn || "").includes("Apple Books") &&
+        (r.availableOn || "").includes("Bookshop.org"), r.availableOn);
+  check("the site being read is listed too",
+        (r.availableOn || "").split(" ; ").length >= 5, r.availableOn);
 }
 
 console.log("\nLink collection for the queue");
@@ -780,6 +787,39 @@ console.log("\nPublisher listing with bylines inside titles");
   check("publisher facebook is not the author's", !first.facebook, String(first.facebook));
 }
 
+console.log("\nRun status is visible and finishes as Done");
+{
+  await page.goto(`${BASE}/crawl_listing.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#orynx-badge", { timeout: 15000 });
+  await page.click("#orynx-badge");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.click("#orynx-crawl");
+
+  const working = await page
+    .waitForFunction(() => {
+      const node = document.querySelector("#orynx-progress");
+      return node && !node.hidden && /Working/.test(node.textContent);
+    }, null, { timeout: 15000, polling: 300 })
+    .then(() => true).catch(() => false);
+  check("says Working while the run is live", working,
+        await page.textContent("#orynx-progress").catch(() => ""));
+  check("stop button is offered while working", await page.isVisible("#orynx-stop"));
+
+  const finished = await page
+    .waitForFunction(() => {
+      const node = document.querySelector("#orynx-progress");
+      return node && /^(Done|Stopped)/.test(node.textContent);
+    }, null, { timeout: 90000, polling: 500 })
+    .then(() => true).catch(() => false);
+  const finalText = await page.textContent("#orynx-progress").catch(() => "");
+  check("ends with a Done line", finished && /^Done/.test(finalText), finalText);
+  check("stop button hidden once finished", !(await page.isVisible("#orynx-stop")));
+  check("the finished state is marked for styling",
+        (await page.getAttribute("#orynx-progress", "data-state")) === "done",
+        await page.getAttribute("#orynx-progress", "data-state"));
+}
+
 console.log("\nCSV shape");
 {
   const worker = context.serviceWorkers()[0];
@@ -795,7 +835,9 @@ console.log("\nCSV shape");
   check("headers are the requested fields", header.startsWith("Book title,Description,Rating,Reviews,Voters,Views"), header.slice(0, 60));
   check("no leftover scoring columns", !/priority|tier|services|idealPitch/i.test(header), header);
   check("AI columns last", header.endsWith("found_email,outreach_message"), header.slice(-40));
-  check("column count", csv.headers.length === 31, String(csv.headers.length));
+  check("column count", csv.headers.length === 32, String(csv.headers.length));
+  check("availability column present", csv.headers.includes("Available on"),
+        csv.headers.join(","));
   await driver.close();
 }
 

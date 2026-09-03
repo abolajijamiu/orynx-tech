@@ -34,8 +34,11 @@
 .orynx-C { background: #f3f4f6; color: #374151; }
 .orynx-D { background: #fee2e2; color: #991b1b; }
 .orynx-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #34d399; margin-right: 4px; }
-.orynx-progress { padding: 8px 14px; font-size: 11px; line-height: 1.45; background: #ecfdf5;
-  color: #065f46; border-top: 1px solid #d1fae5; }
+.orynx-progress { padding: 8px 14px; font-size: 11px; line-height: 1.45; font-weight: 600;
+  border-top: 1px solid transparent; }
+.orynx-progress[data-state="working"] { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.orynx-progress[data-state="done"] { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.orynx-progress[data-state="stopped"] { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 .orynx-btn.wide { flex: 3; }
 .orynx-foot { padding: 10px 14px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; background: #f9fafb; }
 .orynx-btn { flex: 1; padding: 8px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
@@ -46,12 +49,17 @@
 @media (prefers-color-scheme: dark) {
   #orynx-panel { background: #111827; border-color: #374151; }
   #orynx-root { color: #f3f4f6; }
-  .orynx-head, .orynx-progress { padding: 8px 14px; font-size: 11px; line-height: 1.45; background: #ecfdf5;
-  color: #065f46; border-top: 1px solid #d1fae5; }
+  .orynx-head, .orynx-progress { padding: 8px 14px; font-size: 11px; line-height: 1.45; font-weight: 600;
+  border-top: 1px solid transparent; }
+.orynx-progress[data-state="working"] { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.orynx-progress[data-state="done"] { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.orynx-progress[data-state="stopped"] { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 .orynx-btn.wide { flex: 3; }
 .orynx-foot { background: #0b1220; border-color: #374151; }
   .orynx-item { border-color: #1f2937; }
   .orynx-chip, .orynx-btn { background: #1f2937; border-color: #374151; color: #f3f4f6; }
-  .orynx-progress { background: #052e1a; color: #a7f3d0; border-color: #065f46; }
+  .orynx-progress[data-state="working"] { background: #422006; color: #fde68a; border-color: #92400e; }
+  .orynx-progress[data-state="done"] { background: #052e1a; color: #a7f3d0; border-color: #065f46; }
+  .orynx-progress[data-state="stopped"] { background: #450a0a; color: #fecaca; border-color: #991b1b; }
   .orynx-chip.on, .orynx-btn.primary { background: #34d399; color: #052e1a; border-color: #34d399; }
 }

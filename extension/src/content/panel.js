@@ -84,11 +84,69 @@ function render() {
     .join("");
 }
 
-function showProgress(text) {
+/**
+ * Show what the run is doing.
+ *
+ * `state` is one of "working", "done", "stopped" or "idle", which drives the
+ * colour and the label. Broadcasts alone were not enough: any sent before the
+ * panel was opened are lost, so the state is also polled while a run is live.
+ */
+function showProgress(text, state = "working") {
   const node = root?.querySelector("#orynx-progress");
   if (!node) return;
   node.hidden = false;
+  node.dataset.state = state;
   node.textContent = text;
+  const stop = root.querySelector("#orynx-stop");
+  if (stop) stop.hidden = state !== "working";
+}
+
+function describe(state) {
+  const noun = state.mode === "authors" ? "author page" : "book page";
+  if (state.running) {
+    return {
+      state: "working",
+      text:
+        `Working — ${state.done}/${state.total} ${noun}s` +
+        `${state.saved ? `, ${state.saved} saved` : ""}` +
+        `${state.failed ? `, ${state.failed} failed` : ""}` +
+        `${state.current ? ` · reading ${String(state.current).slice(0, 40)}` : ""}`,
+    };
+  }
+  if (!state.total) return { state: "idle", text: "" };
+  return {
+    state: state.stopRequested ? "stopped" : "done",
+    text:
+      `${state.stopRequested ? "Stopped" : "Done"} — ${state.done}/${state.total} ` +
+      `${noun}s visited, ${state.saved} record(s) saved` +
+      `${state.failed ? `, ${state.failed} failed` : ""}.`,
+  };
+}
+
+let pollTimer = null;
+
+/** Keep the line honest even when a broadcast is missed. */
+function watchQueue() {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({ type: "orynx:queue:status" });
+    } catch {
+      return; // the worker is asleep; nothing is running
+    }
+    const state = response?.state;
+    if (!state) return;
+    const shown = describe(state);
+    if (shown.state === "idle") return;
+    showProgress(shown.text, shown.state);
+    if (!state.running) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      // The run wrote to the library, so refresh what this page shows.
+      rescan();
+    }
+  }, 1500);
 }
 
 function escapeHtml(value) {
@@ -225,8 +283,8 @@ function buildUi() {
     );
     if (!proceed) return;
     await chrome.runtime.sendMessage({ type: "orynx:queue:start", links });
-    root.querySelector("#orynx-stop").hidden = false;
-    showProgress(`Starting on ${links.length} book page(s)…`);
+    showProgress(`Working — starting on ${links.length} book page(s)…`, "working");
+    watchQueue();
   });
 
   root.querySelector("#orynx-authors").addEventListener("click", async () => {
@@ -246,13 +304,13 @@ function buildUi() {
     );
     if (!proceed) return;
     await chrome.runtime.sendMessage({ type: "orynx:queue:start", mode: "authors", links });
-    root.querySelector("#orynx-stop").hidden = false;
-    showProgress(`Starting on ${links.length} author page(s)…`);
+    showProgress(`Working — starting on ${links.length} author page(s)…`, "working");
+    watchQueue();
   });
 
   root.querySelector("#orynx-stop").addEventListener("click", async () => {
     await chrome.runtime.sendMessage({ type: "orynx:queue:stop" });
-    showProgress("Stopping after the current page…");
+    showProgress("Stopping after the current page…", "working");
   });
 
   root.querySelector("#orynx-csv").addEventListener("click", () => download(selected()));
@@ -299,23 +357,22 @@ export async function init() {
   render();
   watchForLateContent();
 
+  // A run may already be under way, started from another tab. Show it.
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "orynx:queue:status" });
+    const shown = describe(response?.state || {});
+    if (shown.state !== "idle") {
+      showProgress(shown.text, shown.state);
+      if (response.state.running) watchQueue();
+    }
+  } catch {
+    // No worker yet; nothing is running.
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message?.type === "orynx:queue:progress") {
-      const state = message.state || {};
-      const noun = state.mode === "authors" ? "author page" : "book page";
-      if (state.running) {
-        showProgress(
-          `${state.done}/${state.total} ${noun}s visited · ${state.saved} updated` +
-          (state.failed ? ` · ${state.failed} failed` : "") +
-          (state.current ? ` · reading ${String(state.current).slice(0, 40)}` : ""),
-        );
-      } else {
-        showProgress(
-          `Finished: ${state.done}/${state.total} ${noun}s visited, ${state.saved} record(s) updated` +
-          (state.failed ? `, ${state.failed} failed` : "") + ".",
-        );
-        if (root) root.querySelector("#orynx-stop").hidden = true;
-      }
+      const shown = describe(message.state || {});
+      if (shown.state !== "idle") showProgress(shown.text, shown.state);
     }
     if (message?.type === "orynx:rescan") {
       rescan();

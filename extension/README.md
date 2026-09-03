@@ -137,6 +137,12 @@ listing page
            └─ its contact page   where the homepage carries no address
 ```
 
+The status line says **Working** while a run is live, with the count and the page
+being read, and **Done** when it finishes — or **Stopped** if you stopped it. It
+is also polled rather than only pushed, so opening the panel mid-run shows the
+run rather than nothing: a broadcast sent before the panel existed is lost, and
+that is exactly when someone goes looking for progress.
+
 One background tab at a time throughout. Each author is visited once however
 many of their books you hold, and an author already read is skipped on a later
 run.
@@ -153,9 +159,9 @@ is what an enrichment pass actually needs.
 
 ## The CSV, and the AI pass after it
 
-31 columns, one row per book, in a fixed order: title, description, rating,
+32 columns, one row per book, in a fixed order: title, description, rating,
 reviews, voters, views, dates, pages, genres, original title, edition, language,
-more editions, statistics, then the author — name, biography, email, phone,
+more editions, statistics, **the stores it is available on**, then the author — name, biography, email, phone,
 website, Facebook, Instagram, TikTok, X, LinkedIn, other profiles — then the
 community review text, then the book and author page URLs.
 

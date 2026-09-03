@@ -41,6 +41,7 @@ export const EXPORT_COLUMNS = [
   ["Language", "language"],
   ["More editions", "moreEditionsUrl"],
   ["Book statistics", "bookStatistics"],
+  ["Available on", "availableOn"],
   ["Author name", "author"],
   ["About the author", "authorBio"],
   ["Author email", "email"],
@@ -236,6 +237,8 @@ export function extractPage(doc = document, pageUrl = location.href, registryJso
       currentlyReadingCount: stats.currentlyReadingCount ?? null,
       editionsCount: stats.editionsCount ?? null,
       moreEditionsUrl: detail?.moreEditionsUrl || null,
+      // Every store and platform the page links to, the current site included.
+      availableOn: (detail?.availableOn || []).join(" ; ") || null,
       averageRating: book.averageRating ?? null,
       isbn: isbn || null,
       publisher: book.publisher || null,
