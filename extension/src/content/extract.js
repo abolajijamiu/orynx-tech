@@ -14,6 +14,7 @@ import { extractContacts, siteDomain } from "../shared/contacts.js";
 import { extractDetail } from "../shared/detail.js";
 import { extractAuthorProfile, looksLikeAuthorPage } from "../shared/author.js";
 import { asAuthorPage, asAuthorWebsite, classifyAuthorLink } from "../shared/links.js";
+import { findNextPage } from "../shared/pagination.js";
 import { cleanText, isbn10To13, normalizeTitle, normalizePerson, parseDate, readableText } from "../shared/normalize.js";
 
 /**
@@ -437,4 +438,13 @@ function pick(url, network) {
   if (!url) return null;
   const alternates = network === "twitter" ? ["twitter.", "x.com"] : [`${network}.`];
   return alternates.some((fragment) => url.toLowerCase().includes(fragment)) ? url : null;
+}
+
+
+/** Book links on this page, plus where the listing continues. */
+export function surveyListing(doc = document, pageUrl = location.href, visited = []) {
+  return {
+    links: collectBookLinks(doc, pageUrl),
+    next: findNextPage(doc, pageUrl, new Set(visited)),
+  };
 }

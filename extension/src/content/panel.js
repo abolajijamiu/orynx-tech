@@ -6,7 +6,7 @@
  * whether the records carry a usable contact route.
  */
 
-import { collectAuthorLinks, collectBookLinks, diagnosePage, extractAuthor, extractPage, matchesFilter, toCsv } from "./extract.js";
+import { collectAuthorLinks, collectBookLinks, diagnosePage, extractAuthor, extractPage, matchesFilter, surveyListing, toCsv } from "./extract.js";
 import { extractContacts } from "../shared/contacts.js";
 
 const CHANNELS = [
@@ -103,11 +103,12 @@ function showProgress(text, state = "working") {
 
 function describe(state) {
   const noun = state.mode === "authors" ? "author page" : "book page";
+  const sweep = state.mode === "sweep" ? ` · listing page ${state.page}/${state.pages}` : "";
   if (state.running) {
     return {
       state: "working",
       text:
-        `Working — ${state.done}/${state.total} ${noun}s` +
+        `Working${sweep} — ${state.done}/${state.total} ${noun}s` +
         `${state.saved ? `, ${state.saved} saved` : ""}` +
         `${state.failed ? `, ${state.failed} failed` : ""}` +
         `${state.current ? ` · reading ${String(state.current).slice(0, 40)}` : ""}`,
@@ -117,9 +118,11 @@ function describe(state) {
   return {
     state: state.stopRequested ? "stopped" : "done",
     text:
-      `${state.stopRequested ? "Stopped" : "Done"} — ${state.done}/${state.total} ` +
-      `${noun}s visited, ${state.saved} record(s) saved` +
-      `${state.failed ? `, ${state.failed} failed` : ""}.`,
+      `${state.stopRequested ? "Stopped" : "Done"} — ` +
+      `${state.mode === "sweep" ? `${state.pagesVisited || state.page} listing page(s), ` : ""}` +
+      `${state.done}/${state.total} ${noun}s visited, ${state.saved} record(s) saved` +
+      `${state.failed ? `, ${state.failed} failed` : ""}` +
+      `${state.mode === "sweep" && state.exhausted ? " — no further pages found." : "."}`,
   };
 }
 
@@ -208,6 +211,10 @@ function buildUi() {
         <button class="orynx-btn wide primary" id="orynx-crawl">Visit each book and save</button>
         <button class="orynx-btn" id="orynx-authors" title="Visit each author's page for bio, site and contacts">Authors</button>
         <button class="orynx-btn" id="orynx-stop" hidden>Stop</button>
+      </div>
+      <div class="orynx-foot">
+        <button class="orynx-btn wide" id="orynx-sweep" title="This page, then follow Next and repeat">Sweep this page and the next ones</button>
+        <input class="orynx-pages" id="orynx-pages" type="number" min="1" max="50" value="5" title="How many listing pages to follow">
       </div>
     </div>`;
 
@@ -308,6 +315,24 @@ function buildUi() {
     watchQueue();
   });
 
+  root.querySelector("#orynx-sweep").addEventListener("click", async () => {
+    const maxPages = Math.max(1, Math.min(50, Number(root.querySelector("#orynx-pages").value) || 5));
+    const preview = collectBookLinks(document, location.href);
+    const proceed = confirm(
+      `Sweep up to ${maxPages} listing page(s), starting here?\n\n` +
+      `This page offers ${preview.length} book(s). For each page it reads every ` +
+      "book, then those authors, then their websites, then follows Next and " +
+      "repeats.\n\nThat is roughly " + (preview.length * maxPages * 3) +
+      " page loads. Sites rate-limit this. You can stop at any point.",
+    );
+    if (!proceed) return;
+    await chrome.runtime.sendMessage({
+      type: "orynx:sweep:start", url: location.href, options: { maxPages },
+    });
+    showProgress(`Working — sweeping up to ${maxPages} page(s)…`, "working");
+    watchQueue();
+  });
+
   root.querySelector("#orynx-stop").addEventListener("click", async () => {
     await chrome.runtime.sendMessage({ type: "orynx:queue:stop" });
     showProgress("Stopping after the current page…", "working");
@@ -383,6 +408,9 @@ export async function init() {
     }
     if (message?.type === "orynx:author") {
       respond({ ok: true, profile: extractAuthor(document, location.href) });
+    }
+    if (message?.type === "orynx:survey") {
+      respond({ ok: true, ...surveyListing(document, location.href, message.visited || []) });
     }
     if (message?.type === "orynx:contacts") {
       // An author's own website is rarely a book page, so asking for book

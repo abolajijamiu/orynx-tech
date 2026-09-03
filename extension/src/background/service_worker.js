@@ -28,6 +28,10 @@ const DEFAULTS = {
   followContactPage: true,
   // Run the author stage automatically once the books are done.
   chainAuthors: true,
+  // How many listing pages a sweep will follow. Deliberately small: each page
+  // costs its books, their authors, and those authors' sites, so ten pages of
+  // twenty books is several hundred page loads.
+  maxPages: 5,
 };
 
 
@@ -398,6 +402,96 @@ async function runQueue(links, overrides = {}, mode = "books") {
 }
 
 /**
+ * Work through a listing, then follow it to the next page, and repeat.
+ *
+ * Each page is fully processed — its books, then their authors — before the
+ * next is opened, so stopping mid-sweep leaves complete pages behind rather
+ * than a half-read one.
+ */
+async function runSweep(startUrl, overrides = {}) {
+  const options = { ...DEFAULTS, ...overrides };
+  const visited = [];
+  let url = startUrl;
+  let pages = 0;
+
+  queueState = {
+    running: true, stopRequested: false, mode: "sweep", total: 0,
+    done: 0, saved: 0, failed: 0, current: null, errors: [],
+    page: 0, pages: options.maxPages,
+  };
+  await publishState();
+
+  while (url && pages < options.maxPages && !queueState.stopRequested) {
+    pages += 1;
+    queueState.page = pages;
+    queueState.current = `listing page ${pages}`;
+    await publishState();
+    visited.push(url);
+
+    let survey = null;
+    try {
+      survey = await withTab(url, options, async (tabId) => {
+        const response = await ask(tabId, { type: "orynx:survey", visited }, 5, 700);
+        if (!response) throw new Error("no response from the listing page");
+        return { links: response.links || [], next: response.next || null };
+      });
+    } catch (error) {
+      queueState.failed += 1;
+      queueState.errors.push(`listing page ${pages}: ${String(error.message || error)}`);
+      break;
+    }
+
+    queueState.total += survey.links.length;
+    await publishState();
+
+    for (const link of survey.links) {
+      if (queueState.stopRequested) break;
+      queueState.current = link.title || link.url;
+      await publishState();
+      try {
+        queueState.saved += await processLink(link, options);
+      } catch (error) {
+        queueState.failed += 1;
+        if (queueState.errors.length < 20) {
+          queueState.errors.push(`${link.title || link.url}: ${String(error.message || error)}`);
+        }
+      }
+      queueState.done += 1;
+      await publishState();
+      if (!queueState.stopRequested) await sleep(options.delayMs);
+    }
+
+    if (options.chainAuthors && !queueState.stopRequested) {
+      const authors = await pendingAuthorLinks();
+      for (const author of authors) {
+        if (queueState.stopRequested) break;
+        queueState.current = `author: ${author.title}`;
+        await publishState();
+        try {
+          queueState.saved += await processAuthor(author, options);
+        } catch (error) {
+          queueState.failed += 1;
+          if (queueState.errors.length < 20) {
+            queueState.errors.push(`${author.title}: ${String(error.message || error)}`);
+          }
+        }
+        await sleep(options.delayMs);
+      }
+    }
+
+    url = survey.next;
+    if (!url) break;
+  }
+
+  queueState.running = false;
+  queueState.current = null;
+  queueState.pagesVisited = pages;
+  queueState.exhausted = !url;
+  await publishState();
+  return queueState;
+}
+
+/**
  * Author pages worth visiting: one per author, and only those not already read.
  * Re-reading an author because they wrote six books would be slower and ruder.
  */
@@ -446,6 +540,15 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     // Answer immediately; the run reports progress as it goes.
     respond({ ok: true, total: (message.links || []).length });
     runQueue(message.links || [], message.options || {}, message.mode || "books");
+    return true;
+  }
+  if (message?.type === "orynx:sweep:start") {
+    if (queueState.running) {
+      respond({ ok: false, error: "a run is already in progress" });
+      return true;
+    }
+    respond({ ok: true });
+    runSweep(message.url, message.options || {});
     return true;
   }
   if (message?.type === "orynx:queue:stop") {

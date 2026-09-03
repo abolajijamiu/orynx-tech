@@ -55,6 +55,9 @@ const BYLINE_PREFIX = /^\s*(?:by|written by|author[:s]?)\s*[:\-]?\s*/i;
 // Paths that mean "this link points at a book", used to find cards on sites
 // whose class names give nothing away.
 export const BOOK_LINK_RE = /\/(?:book|books|title|titles|product|products|shop|catalog|catalogue|item|p)\/[^/]/i;
+// "/book/…" says what it is; "/product/…" could be anything a shop sells. Two of
+// the first is evidence; the second needs more of them before it means much.
+const EXPLICIT_BOOK_LINK_RE = /\/(?:book|books|title|titles)\/[^/]/i;
 
 // Containers that usually hold one book each on a listing page.
 const CARD_SELECTORS = [
@@ -484,7 +487,7 @@ export function explainRejections(doc = document, pageUrl = "", bookContext = fa
 
 // Vocabulary that only appears on pages about books.
 const BOOK_WORDS =
-  /\b(isbn|paperback|hardback|hardcover|ebook|audiobook|novel|manuscript|synopsis|blurb|imprint|bookshop|our authors|book review)\b/i;
+  /\b(isbn|paperback|hardback|hardcover|ebook|audiobook|novel|manuscript|synopsis|blurb|imprint|bookshop|our authors|our books|our titles|book review|new releases|browse books)\b/i;
 
 /**
  * Does this page look like it is about books, independent of the registry?
@@ -494,11 +497,18 @@ const BOOK_WORDS =
  * evidence a listing card must carry.
  */
 export function pageLooksBooky(doc = document, pageText = "") {
-  let bookLinks = 0;
+  let explicit = 0;
+  let loose = 0;
   for (const link of doc.querySelectorAll("a[href]")) {
-    if (BOOK_LINK_RE.test(link.getAttribute("href") || "")) {
-      bookLinks += 1;
-      if (bookLinks >= 3) return true;
+    const href = link.getAttribute("href") || "";
+    if (EXPLICIT_BOOK_LINK_RE.test(href)) {
+      explicit += 1;
+      // Two "/book/…" links are enough. A catalogue page can be short, and
+      // demanding three misses small presses entirely.
+      if (explicit >= 2) return true;
+    } else if (BOOK_LINK_RE.test(href)) {
+      loose += 1;
+      if (loose >= 3) return true;
     }
   }
   return BOOK_WORDS.test(pageText.slice(0, 60000));

@@ -123,6 +123,24 @@ community review text, trimmed so a spreadsheet cell stays usable.
 `readersCount` and `viewsCount` stay empty on sites that publish neither, which
 is most of them.
 
+## Sweeping a whole catalogue
+
+**Sweep this page and the next ones** works a listing to its end: read every book
+on the page, then those authors, then follow the site's Next control and repeat.
+The page box beside it caps how far it goes, defaulting to five.
+
+Next is found generically, since sites label it differently: `rel="next"` first
+because it is a standard, then pagination markup and aria labels, then link text
+in about twenty languages, then bare glyphs like » and ›, and finally a link to
+the same URL with its page number advanced. "Previous" and "first" are never
+mistaken for it, and a page already visited is never followed again — the last
+page of a listing routinely links back to the first, which would otherwise loop.
+
+**The cap is there for a reason.** Each listing page costs its books, their
+authors, and those authors' websites. Twenty books over ten pages is several
+hundred page loads, and sites rate-limit that. The confirmation says how many
+loads it expects before it starts.
+
 ## What one run does
 
 **Visit each book and save** now runs the whole chain without a second click:

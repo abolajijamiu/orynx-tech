@@ -44,6 +44,7 @@ const server = http.createServer((req, res) => {
   else if (name.startsWith("/author/")) name = "/author_page.html";
   if (name === "/site") name = "/author_site.html";
   if (name === "/nomail") name = "/author_site_nomail.html";
+  if (/^\/sweep\d+$/.test(name)) name = `${name}.html`;
   if (name === "/contact") name = "/contact_page.html";
   const file = url.startsWith("/ext/")
     ? path.join(EXT, url.slice(5))
@@ -818,6 +819,89 @@ console.log("\nRun status is visible and finishes as Done");
   check("the finished state is marked for styling",
         (await page.getAttribute("#orynx-progress", "data-state")) === "done",
         await page.getAttribute("#orynx-progress", "data-state"));
+}
+
+console.log("\nFinding the next page");
+{
+  const probe = async (file) => {
+    await page.goto(`${BASE}/${file}`, { waitUntil: "domcontentloaded" });
+    await page.addScriptTag({
+      type: "module",
+      content: `
+        import { findNextPage } from "${BASE}/ext/src/shared/pagination.js";
+        window.__next = findNextPage(document, location.href, new Set());
+        window.__nextReady = true;`,
+    });
+    await page.waitForFunction(() => window.__nextReady === true, null, { timeout: 8000 });
+    const value = await page.evaluate(() => window.__next);
+    await page.evaluate(() => { window.__nextReady = false; });
+    return value;
+  };
+
+  check("follows a worded link like 'next month'",
+        (await probe("sweep1.html") || "").includes("/sweep2"), await probe("sweep1.html"));
+  check("follows a bare glyph",
+        (await probe("next_variants.html") || "").includes("page=5"),
+        await probe("next_variants.html"));
+  check("rel=next outranks link text",
+        (await probe("next_rel.html") || "").includes("page=9"), await probe("next_rel.html"));
+  check("returns nothing on the last page", (await probe("next_none.html")) === null,
+        String(await probe("next_none.html")));
+  check("never offers 'previous' as next",
+        !((await probe("next_none.html")) || "").includes("page=8"),
+        String(await probe("next_none.html")));
+
+  const loop = await page.evaluate(async (base) => {
+    const { findNextPage } = await import(`${base}/ext/src/shared/pagination.js`);
+    // Pretend page 2 was already visited; it must not be offered again.
+    return findNextPage(document, location.href, new Set([`${base}/sweep2`]));
+  }, BASE).catch(() => "error");
+  await page.goto(`${BASE}/sweep1.html`, { waitUntil: "domcontentloaded" });
+  const revisit = await page.evaluate(async (base) => {
+    const { findNextPage } = await import(`${base}/ext/src/shared/pagination.js`);
+    return findNextPage(document, location.href, new Set([`${base}/sweep2`]));
+  }, BASE);
+  check("a page already visited is not followed again", revisit === null, String(revisit));
+}
+
+console.log("\nSweep across listing pages");
+{
+  const worker = context.serviceWorkers()[0];
+  const extensionId = worker ? new URL(worker.url()).host : null;
+  const driver = await context.newPage();
+  await driver.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  await driver.evaluate(() => chrome.runtime.sendMessage({ type: "orynx:clear" }));
+
+  await driver.evaluate((url) => chrome.runtime.sendMessage({
+    type: "orynx:sweep:start", url,
+    options: { delayMs: 100, settleMs: 200, maxPages: 5, chainAuthors: false },
+  }), `${BASE}/sweep1.html`);
+
+  let state = null;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const status = await driver.evaluate(() =>
+      chrome.runtime.sendMessage({ type: "orynx:queue:status" }));
+    if (status?.state && !status.state.running && status.state.done > 0) {
+      state = status.state;
+      break;
+    }
+  }
+  check("sweep finished", Boolean(state), JSON.stringify(state));
+  check("walked all three listing pages", state?.pagesVisited === 3, JSON.stringify(state?.pagesVisited));
+  check("stopped because there were no more, not by the limit", state?.exhausted === true,
+        String(state?.exhausted));
+  check("visited every book across the pages", state?.done === 6, String(state?.done));
+
+  const saved = await driver.evaluate(async () =>
+    (await chrome.runtime.sendMessage({ type: "orynx:list" })).records);
+  check("six books saved", saved.length === 6, saved.map((r) => r.bookName).join(" | "));
+  check("books from the last page are present",
+        saved.some((r) => r.bookName === "Sweep 3 Beta"), saved.map((r) => r.bookName).join(" | "));
+  check("detail data captured on swept books",
+        saved.every((r) => r.isbn && r.pageCount === 200),
+        JSON.stringify(saved.map((r) => [r.isbn, r.pageCount])));
+  await driver.close();
 }
 
 console.log("\nCSV shape");
